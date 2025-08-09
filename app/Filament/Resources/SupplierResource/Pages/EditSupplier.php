@@ -15,16 +15,16 @@ class EditSupplier extends EditRecord
     {
         return [
             Actions\ViewAction::make()
-                ->label('Lihat Detail')
+                ->label('View Details')
                 ->icon('heroicon-o-eye'),
 
             Actions\DeleteAction::make()
-                ->label('Hapus Supplier')
+                ->label('Delete Supplier')
                 ->icon('heroicon-o-trash')
                 ->requiresConfirmation()
-                ->modalHeading('Hapus Supplier')
-                ->modalDescription('Apakah Anda yakin ingin menghapus supplier ini? Tindakan ini tidak dapat dibatalkan.')
-                ->modalSubmitActionLabel('Ya, Hapus')
+                ->modalHeading('Delete Supplier')
+                ->modalDescription('Are you sure you want to delete this supplier? This action cannot be undone.')
+                ->modalSubmitActionLabel('Yes, Delete')
                 ->successRedirectUrl(fn () => static::getResource()::getUrl('index')),
         ];
     }
@@ -38,14 +38,14 @@ class EditSupplier extends EditRecord
     {
         return Notification::make()
             ->success()
-            ->title('Supplier berhasil diperbarui')
-            ->body('Data supplier telah berhasil diperbarui.')
+            ->title('Supplier successfully updated')
+            ->body('Supplier data has been successfully updated.')
             ->duration(5000);
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Bersihkan dan format data sebelum disimpan
+        // Clean and format data before saving
         $data['nama'] = trim($data['nama']);
         $data['alamat'] = trim($data['alamat']);
         $data['telepon'] = preg_replace('/[^0-9\-\+\(\)\s]/', '', $data['telepon']);
@@ -58,9 +58,9 @@ class EditSupplier extends EditRecord
     {
         return [
             $this->getSaveFormAction()
-                ->label('Simpan Perubahan'),
+                ->label('Save Changes'),
             $this->getCancelFormAction()
-                ->label('Batal'),
+                ->label('Cancel'),
         ];
     }
 }

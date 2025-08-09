@@ -16,7 +16,7 @@ class ListSuppliers extends ListRecords
     {
         return [
             Actions\CreateAction::make()
-                ->label('Tambah Supplier')
+                ->label('Add Supplier')
                 ->icon('heroicon-o-plus')
                 ->modalWidth('2xl'),
         ];
@@ -25,14 +25,14 @@ class ListSuppliers extends ListRecords
     public function getTabs(): array
     {
         return [
-            'all' => Tab::make('Semua Supplier')
+            'all' => Tab::make('All Suppliers')
                 ->badge(fn () => $this->getModel()::count()),
 
-            'recent' => Tab::make('Terbaru')
+            'recent' => Tab::make('Recent')
                 ->badge(fn () => $this->getModel()::where('created_at', '>=', now()->subDays())->count())
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('created_at', '>=', now()->subDays())),
 
-            'active' => Tab::make('Aktif')
+            'active' => Tab::make('Active')
                 ->badge(fn () => $this->getModel()::whereHas('poSuppliers')->count())
                 ->modifyQueryUsing(fn (Builder $query) => $query->whereHas('poSuppliers')),
         ];

@@ -16,7 +16,7 @@ class ListRekeningBank extends ListRecords
     {
         return [
             Actions\CreateAction::make()
-                ->label('Tambah Rekening Bank')
+                ->label('Add Bank Account')
                 ->icon('heroicon-o-plus')
                 ->modalWidth('2xl'),
         ];
@@ -25,18 +25,18 @@ class ListRekeningBank extends ListRecords
     public function getTabs(): array
     {
         return [
-            'all' => Tab::make('Semua Rekening')
+            'all' => Tab::make('All Accounts')
                 ->badge(fn () => $this->getModel()::count()),
 
-            'recent' => Tab::make('Terbaru')
+            'recent' => Tab::make('Recent')
                 ->badge(fn () => $this->getModel()::where('created_at', '>=', now()->subDays(7))->count())
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('created_at', '>=', now()->subDays(7))),
 
-            'with_transactions' => Tab::make('Ada Transaksi')
+            'with_transactions' => Tab::make('With Transactions')
                 ->badge(fn () => $this->getModel()::has('transaksiKeuangan')->count())
                 ->modifyQueryUsing(fn (Builder $query) => $query->has('transaksiKeuangan')),
 
-            'without_transactions' => Tab::make('Belum Ada Transaksi')
+            'without_transactions' => Tab::make('No Transactions')
                 ->badge(fn () => $this->getModel()::doesntHave('transaksiKeuangan')->count())
                 ->modifyQueryUsing(fn (Builder $query) => $query->doesntHave('transaksiKeuangan')),
         ];

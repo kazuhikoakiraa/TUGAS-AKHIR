@@ -21,13 +21,13 @@ class RekeningBankResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
 
-    protected static ?string $navigationLabel = 'Rekening Bank';
+    protected static ?string $navigationLabel = 'Bank Account';
 
-    protected static ?string $modelLabel = 'Rekening Bank';
+    protected static ?string $modelLabel = 'Bank Account';
 
-    protected static ?string $pluralModelLabel = 'Rekening Bank';
+    protected static ?string $pluralModelLabel = 'Bank Accounts';
 
-    protected static ?string $navigationGroup = 'Data Master';
+    protected static ?string $navigationGroup = 'Master Data';
 
     protected static ?int $navigationSort = 4;
 
@@ -35,42 +35,42 @@ class RekeningBankResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Informasi Rekening Bank')
-                    ->description('Masukkan data lengkap rekening bank')
+                Forms\Components\Section::make('Bank Account Information')
+                    ->description('Enter complete bank account data')
                     ->schema([
                         Forms\Components\Select::make('nama_bank')
-                            ->label('Nama Bank')
+                            ->label('Bank Name')
                             ->required()
                             ->searchable()
                             ->options(BankHelper::getBankOptions())
-                            ->placeholder('Pilih nama bank')
+                            ->placeholder('Select bank name')
                             ->prefixIcon('heroicon-o-building-library')
-                            ->helperText('Pilih bank resmi yang terdaftar di Indonesia')
+                            ->helperText('Select official bank registered in Indonesia')
                             ->native(false),
 
                         Forms\Components\TextInput::make('nomor_rekening')
-                            ->label('Nomor Rekening')
+                            ->label('Account Number')
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('Masukkan nomor rekening')
+                            ->placeholder('Enter account number')
                             ->prefixIcon('heroicon-o-credit-card')
-                            ->helperText('Nomor rekening bank tanpa spasi atau tanda baca')
+                            ->helperText('Bank account number without spaces or punctuation')
                             ->unique(ignoreRecord: true),
 
                         Forms\Components\TextInput::make('nama_pemilik')
-                            ->label('Nama Pemilik')
+                            ->label('Account Holder Name')
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('Masukkan nama pemilik rekening')
+                            ->placeholder('Enter account holder name')
                             ->prefixIcon('heroicon-o-user')
-                            ->helperText('Nama pemilik sesuai dengan rekening bank'),
+                            ->helperText('Account holder name as per bank account'),
 
                         Forms\Components\Textarea::make('keterangan')
-                            ->label('Keterangan')
-                            ->placeholder('Masukkan keterangan tambahan (opsional)')
+                            ->label('Notes')
+                            ->placeholder('Enter additional notes (optional)')
                             ->rows(3)
                             ->columnSpanFull()
-                            ->helperText('Informasi tambahan tentang rekening bank'),
+                            ->helperText('Additional information about the bank account'),
                     ])
                     ->columns(2)
                     ->collapsible(),
@@ -82,7 +82,7 @@ class RekeningBankResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('nama_bank')
-                    ->label('Nama Bank')
+                    ->label('Bank Name')
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
@@ -92,23 +92,22 @@ class RekeningBankResource extends Resource
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('kode_bank')
-                    ->label('Kode Bank')
+                    ->label('Bank Code')
                     ->state(fn (RekeningBank $record): ?string => BankHelper::getBankCode($record->nama_bank))
                     ->badge()
                     ->color('gray'),
 
                 Tables\Columns\TextColumn::make('nomor_rekening')
-                    ->label('Nomor Rekening')
+                    ->label('Account Number')
                     ->searchable()
                     ->sortable()
                     ->icon('heroicon-o-credit-card')
                     ->copyable()
-                    ->copyMessage('Nomor rekening berhasil disalin')
+                    ->copyMessage('Account number successfully copied')
                     ->copyMessageDuration(1500),
 
-
                 Tables\Columns\TextColumn::make('nama_pemilik')
-                    ->label('Nama Pemilik')
+                    ->label('Account Holder')
                     ->searchable()
                     ->sortable()
                     ->icon('heroicon-o-user')
@@ -116,20 +115,20 @@ class RekeningBankResource extends Resource
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('transaksi_keuangan_count')
-                    ->label('Total Transaksi')
+                    ->label('Total Transactions')
                     ->counts('transaksiKeuangan')
                     ->badge()
                     ->color('info')
                     ->icon('heroicon-o-arrow-path'),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Dibuat')
+                    ->label('Created')
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Diperbarui')
+                    ->label('Updated')
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -138,15 +137,15 @@ class RekeningBankResource extends Resource
                 Tables\Filters\SelectFilter::make('nama_bank')
                     ->label('Filter Bank')
                     ->searchable()
-                     ->options(BankHelper::getPopularBankOptions())
+                    ->options(BankHelper::getPopularBankOptions())
                     ->multiple(),
 
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         Forms\Components\DatePicker::make('created_from')
-                            ->label('Dibuat dari tanggal'),
+                            ->label('Created from date'),
                         Forms\Components\DatePicker::make('created_until')
-                            ->label('Dibuat sampai tanggal'),
+                            ->label('Created until date'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -162,18 +161,18 @@ class RekeningBankResource extends Resource
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
                         if ($data['created_from'] ?? null) {
-                            $indicators[] = Tables\Filters\Indicator::make('Dibuat dari ' . \Carbon\Carbon::parse($data['created_from'])->toFormattedDateString())
+                            $indicators[] = Tables\Filters\Indicator::make('Created from ' . \Carbon\Carbon::parse($data['created_from'])->toFormattedDateString())
                                 ->removeField('created_from');
                         }
                         if ($data['created_until'] ?? null) {
-                            $indicators[] = Tables\Filters\Indicator::make('Dibuat sampai ' . \Carbon\Carbon::parse($data['created_until'])->toFormattedDateString())
+                            $indicators[] = Tables\Filters\Indicator::make('Created until ' . \Carbon\Carbon::parse($data['created_until'])->toFormattedDateString())
                                 ->removeField('created_until');
                         }
                         return $indicators;
                     }),
 
                 Tables\Filters\Filter::make('has_transactions')
-                    ->label('Memiliki Transaksi')
+                    ->label('Has Transactions')
                     ->query(fn (Builder $query): Builder => $query->has('transaksiKeuangan'))
                     ->toggle(),
             ])
@@ -184,56 +183,56 @@ class RekeningBankResource extends Resource
                     ->color('warning'),
                 Tables\Actions\DeleteAction::make()
                     ->requiresConfirmation()
-                    ->modalHeading('Hapus Rekening Bank')
-                    ->modalDescription('Apakah Anda yakin ingin menghapus rekening bank ini? Data yang sudah dihapus tidak dapat dikembalikan.')
-                    ->modalSubmitActionLabel('Ya, Hapus'),
+                    ->modalHeading('Delete Bank Account')
+                    ->modalDescription('Are you sure you want to delete this bank account? Deleted data cannot be recovered.')
+                    ->modalSubmitActionLabel('Yes, Delete'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->label('Hapus Terpilih')
+                        ->label('Delete Selected')
                         ->icon('heroicon-o-trash')
                         ->requiresConfirmation()
-                        ->modalHeading('Hapus Rekening Bank Terpilih')
-                        ->modalDescription('Apakah Anda yakin ingin menghapus semua rekening bank yang dipilih? Data yang sudah dihapus tidak dapat dikembalikan.')
-                        ->modalSubmitActionLabel('Ya, Hapus Semua'),
+                        ->modalHeading('Delete Selected Bank Accounts')
+                        ->modalDescription('Are you sure you want to delete all selected bank accounts? Deleted data cannot be recovered.')
+                        ->modalSubmitActionLabel('Yes, Delete All'),
                 ]),
             ])
             ->defaultSort('created_at', 'desc')
             ->emptyStateIcon('heroicon-o-credit-card')
-            ->emptyStateHeading('Belum ada data rekening bank')
-            ->emptyStateDescription('Hasil pencarian tidak ditemukan.');
+            ->emptyStateHeading('No bank account data yet')
+            ->emptyStateDescription('No search results found.');
     }
 
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist
             ->schema([
-                Infolists\Components\Section::make('Informasi Rekening Bank')
+                Infolists\Components\Section::make('Bank Account Information')
                     ->schema([
                         Infolists\Components\Grid::make(2)
                             ->schema([
                                 Infolists\Components\TextEntry::make('nama_bank')
-                                    ->label('Nama Bank')
+                                    ->label('Bank Name')
                                     ->size('lg')
                                     ->weight('bold')
                                     ->icon('heroicon-o-building-library')
                                     ->color('primary'),
 
                                 Infolists\Components\TextEntry::make('nomor_rekening')
-                                    ->label('Nomor Rekening')
+                                    ->label('Account Number')
                                     ->icon('heroicon-o-credit-card')
                                     ->copyable()
-                                    ->copyMessage('Nomor rekening berhasil disalin')
+                                    ->copyMessage('Account number successfully copied')
                                     ->formatStateUsing(fn (string $state): string => chunk_split($state, 4, ' ')),
 
                                 Infolists\Components\TextEntry::make('nama_pemilik')
-                                    ->label('Nama Pemilik')
+                                    ->label('Account Holder')
                                     ->icon('heroicon-o-user')
                                     ->color('gray'),
 
                                 Infolists\Components\TextEntry::make('transaksi_keuangan_count')
-                                    ->label('Total Transaksi')
+                                    ->label('Total Transactions')
                                     ->icon('heroicon-o-arrow-path')
                                     ->state(fn (RekeningBank $record): int => $record->transaksiKeuangan()->count())
                                     ->badge()
@@ -241,24 +240,24 @@ class RekeningBankResource extends Resource
                             ]),
 
                         Infolists\Components\TextEntry::make('keterangan')
-                            ->label('Keterangan')
+                            ->label('Notes')
                             ->icon('heroicon-o-information-circle')
-                            ->placeholder('Tidak ada keterangan')
+                            ->placeholder('No notes')
                             ->columnSpanFull(),
                     ])
                     ->icon('heroicon-o-information-circle'),
 
-                Infolists\Components\Section::make('Informasi Sistem')
+                Infolists\Components\Section::make('System Information')
                     ->schema([
                         Infolists\Components\Grid::make(2)
                             ->schema([
                                 Infolists\Components\TextEntry::make('created_at')
-                                    ->label('Dibuat Pada')
+                                    ->label('Created At')
                                     ->dateTime('d F Y, H:i:s')
                                     ->icon('heroicon-o-calendar-days'),
 
                                 Infolists\Components\TextEntry::make('updated_at')
-                                    ->label('Terakhir Diperbarui')
+                                    ->label('Last Updated')
                                     ->dateTime('d F Y, H:i:s')
                                     ->icon('heroicon-o-clock'),
                             ]),
@@ -304,8 +303,8 @@ class RekeningBankResource extends Resource
     {
         return [
             'Bank' => $record->nama_bank,
-            'Nomor Rekening' => $record->nomor_rekening,
-            'Pemilik' => $record->nama_pemilik,
+            'Account Number' => $record->nomor_rekening,
+            'Account Holder' => $record->nama_pemilik,
         ];
     }
 }

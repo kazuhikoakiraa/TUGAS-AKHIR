@@ -20,14 +20,14 @@ class CreateRekeningBank extends CreateRecord
     {
         return Notification::make()
             ->success()
-            ->title('Rekening bank berhasil ditambahkan')
-            ->body('Data rekening bank baru telah berhasil disimpan ke sistem.')
+            ->title('Bank account successfully added')
+            ->body('New bank account data has been successfully saved to the system.')
             ->duration(5000);
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // Bersihkan dan format data sebelum disimpan
+        // Clean and format data before saving
         $data['nama_bank'] = trim($data['nama_bank']);
         $data['nomor_rekening'] = preg_replace('/\D/', '', $data['nomor_rekening']); // Remove non-numeric characters
         $data['nama_pemilik'] = trim($data['nama_pemilik']);
@@ -43,11 +43,11 @@ class CreateRekeningBank extends CreateRecord
     {
         return [
             $this->getCreateFormAction()
-                ->label('Simpan Rekening Bank'),
+                ->label('Save Bank Account'),
             $this->getCreateAnotherFormAction()
-                ->label('Simpan & Tambah Lagi'),
+                ->label('Save & Add Another'),
             $this->getCancelFormAction()
-                ->label('Batal'),
+                ->label('Cancel'),
         ];
     }
 }

@@ -20,14 +20,14 @@ class CreateSupplier extends CreateRecord
     {
         return Notification::make()
             ->success()
-            ->title('Supplier berhasil ditambahkan')
-            ->body('Data supplier baru telah berhasil disimpan ke sistem.')
+            ->title('Supplier successfully added')
+            ->body('New supplier data has been successfully saved to the system.')
             ->duration(5000);
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // Bersihkan dan format data sebelum disimpan
+        // Clean and format data before saving
         $data['nama'] = trim($data['nama']);
         $data['alamat'] = trim($data['alamat']);
         $data['telepon'] = preg_replace('/[^0-9\-\+\(\)\s]/', '', $data['telepon']);
@@ -40,11 +40,11 @@ class CreateSupplier extends CreateRecord
     {
         return [
             $this->getCreateFormAction()
-                ->label('Simpan Supplier'),
+                ->label('Save Supplier'),
             $this->getCreateAnotherFormAction()
-                ->label('Simpan & Tambah Lagi'),
+                ->label('Save & Add Another'),
             $this->getCancelFormAction()
-                ->label('Batal'),
+                ->label('Cancel'),
         ];
     }
 }

@@ -19,16 +19,16 @@ class ViewSupplier extends ViewRecord
                 ->modalWidth('2xl'),
 
             Actions\DeleteAction::make()
-                ->label('Hapus Supplier')
+                ->label('Delete Supplier')
                 ->icon('heroicon-o-trash')
                 ->requiresConfirmation()
-                ->modalHeading('Hapus Supplier')
-                ->modalDescription('Apakah Anda yakin ingin menghapus supplier ini? Tindakan ini tidak dapat dibatalkan.')
-                ->modalSubmitActionLabel('Ya, Hapus')
+                ->modalHeading('Delete Supplier')
+                ->modalDescription('Are you sure you want to delete this supplier? This action cannot be undone.')
+                ->modalSubmitActionLabel('Yes, Delete')
                 ->successRedirectUrl(fn () => static::getResource()::getUrl('index')),
 
             Actions\Action::make('viewPurchaseOrders')
-                ->label('Lihat Purchase Orders')
+                ->label('View Purchase Orders')
                 ->icon('heroicon-o-shopping-bag')
                 ->color('info')
                 ->url(fn ($record) => route('filament.admin.resources.po-suppliers.index', [

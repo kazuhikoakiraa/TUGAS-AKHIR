@@ -113,7 +113,31 @@ Route::post('/reset-password', function (Request $request) {
 //     ->name('po-supplier.print')
 //     ->middleware('auth');
 
-//     Route::middleware('auth')->group(function () {
-//     Route::get('/surat-jalan/{suratJalan}/pdf', [SuratJalanController::class, 'generatePdf'])
-//         ->name('surat-jalan.pdf');
+// Routes untuk Surat Jalan PDF
+Route::middleware(['auth'])->group(function () {
+
+    // Generate PDF Surat Jalan
+    Route::get('/surat-jalan/{suratJalan}/pdf', [SuratJalanController::class, 'generatePdf'])
+        ->name('surat-jalan.pdf')
+        ->where('suratJalan', '[0-9]+');
+
+    // Preview PDF Surat Jalan
+    Route::get('/surat-jalan/{suratJalan}/preview', [SuratJalanController::class, 'previewPdf'])
+        ->name('surat-jalan.preview')
+        ->where('suratJalan', '[0-9]+');
+
+    // API untuk mendapatkan available PO Customers
+    Route::get('/api/po-customers/available', [SuratJalanController::class, 'getAvailablePoCustomers'])
+        ->name('api.po-customers.available');
+});
+
+// Jika menggunakan API tanpa auth (sesuaikan dengan kebutuhan)
+Route::middleware(['api'])->prefix('api')->group(function () {
+    Route::get('/surat-jalan/{suratJalan}', function (\App\Models\SuratJalan $suratJalan) {
+        return response()->json([
+            'success' => true,
+            'data' => $suratJalan->load(['poCustomer.customer', 'user']),
+        ]);
+    })->where('suratJalan', '[0-9]+');
+});
 // });

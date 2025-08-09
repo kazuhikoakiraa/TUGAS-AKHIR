@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('surat_jalan', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('id_po_customer')->constrained('po_customer')->onDelete('cascade');
+            $table->foreignId('id_po_customer')->constrained('po_customer')->onDelete('cascade');;
             $table->foreignId('id_user')->constrained('users')->onDelete('cascade');
             $table->string('nomor_surat_jalan')->unique();
             $table->date('tanggal');

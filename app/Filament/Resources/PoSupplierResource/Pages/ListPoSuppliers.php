@@ -19,7 +19,7 @@ class ListPoSuppliers extends ListRecords
         return [
             Actions\CreateAction::make()
                 ->label('New Supplier PO')
-                ->icon('heroicon-o-plus-circle')
+                ->icon('heroicon-o-plus')
                 ->color('primary'),
         ];
     }

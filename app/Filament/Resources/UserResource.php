@@ -40,14 +40,14 @@ class UserResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Informasi User')
-                    ->description('Masukkan data lengkap user')
+                Forms\Components\Section::make('User Information')
+                    ->description('Enter complete user data')
                     ->schema([
                         Forms\Components\TextInput::make('name')
-                            ->label('Nama Lengkap')
+                            ->label('Full Name')
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('Masukkan nama lengkap user')
+                            ->placeholder('Enter user full name')
                             ->columnSpanFull(),
 
                         Forms\Components\TextInput::make('email')
@@ -58,7 +58,7 @@ class UserResource extends Resource
                             ->maxLength(255)
                             ->placeholder('user@example.com')
                             ->prefixIcon('heroicon-o-envelope')
-                            ->helperText('Email akan digunakan untuk login dan verifikasi akan dikirim otomatis'),
+                            ->helperText('Email will be used for login and verification will be sent automatically'),
 
                         Forms\Components\Select::make('roles')
                     ->relationship('roles', 'name')
@@ -72,20 +72,20 @@ class UserResource extends Resource
                             ->password()
                             ->required(fn (string $context): bool => $context === 'create')
                             ->maxLength(255)
-                            ->placeholder('Masukkan password')
+                            ->placeholder('Enter password')
                             ->prefixIcon('heroicon-o-lock-closed')
-                            ->helperText('Minimal 8 karakter')
+                            ->helperText('Minimum 8 characters')
                             ->minLength(8)
                             ->dehydrateStateUsing(fn ($state) => Hash::make($state))
                             ->dehydrated(fn ($state) => filled($state))
                             ->visible(fn (string $context): bool => $context === 'create'),
 
                         Forms\Components\TextInput::make('password_confirmation')
-                            ->label('Konfirmasi Password')
+                            ->label('Confirm Password')
                             ->password()
                             ->required(fn (string $context): bool => $context === 'create')
                             ->maxLength(255)
-                            ->placeholder('Ulangi password')
+                            ->placeholder('Repeat password')
                             ->prefixIcon('heroicon-o-lock-closed')
                             ->same('password')
                             ->visible(fn (string $context): bool => $context === 'create'),
@@ -100,7 +100,7 @@ class UserResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Nama User')
+                    ->label('User Name')
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
@@ -113,7 +113,7 @@ class UserResource extends Resource
                     ->sortable()
                     ->icon('heroicon-o-envelope')
                     ->copyable()
-                    ->copyMessage('Email berhasil disalin')
+                    ->copyMessage('Email copied successfully')
                     ->copyMessageDuration(1500),
 
                 Tables\Columns\TextColumn::make('roles.name')
@@ -122,63 +122,61 @@ class UserResource extends Resource
 
 
                 Tables\Columns\TextColumn::make('email_verified_at')
-                    ->label('Email Terverifikasi')
+                    ->label('Email Verified')
                     ->dateTime('d M Y H:i')
                     ->sortable()
-                    ->placeholder('Belum diverifikasi')
+                    ->placeholder('Not verified')
                     ->badge()
                     ->color(fn ($state): string => $state ? 'success' : 'warning')
-                    ->formatStateUsing(fn ($state): string => $state ? 'Terverifikasi' : 'Belum Verifikasi'),
+                    ->formatStateUsing(fn ($state): string => $state ? 'Verified' : 'Not Verified'),
 
                 Tables\Columns\TextColumn::make('latest_activity')
-                    ->label('Aktivitas Terakhir')
+                    ->label('Latest Activity')
                     ->state(function (User $record): string {
                         $latestActivity = $record->activityLogs()->latest()->first();
                         if ($latestActivity) {
-                            return $latestActivity->event_label . ' oleh ' . $latestActivity->causer_name . ' (' . $latestActivity->created_at->diffForHumans() . ')';
+                            return $latestActivity->event_label . ' ' . __('activity.by', [], 'en') . ' ' . $latestActivity->causer_name . ' (' . $latestActivity->created_at->diffForHumans() . ')';
                         }
-                        return 'Tidak ada aktivitas';
+                        return __('activity.no_activity', [], 'en');
                     })
                     ->wrap()
                     ->tooltip(function (User $record): string {
                         $activities = $record->activityLogs()->latest()->limit(3)->get();
                         return $activities->map(fn($activity) =>
-                            $activity->event_label . ' oleh ' . $activity->causer_name . ' - ' . $activity->created_at->format('d M Y H:i')
+                            $activity->event_label . ' ' . __('activity.by', [], 'en') . ' ' . $activity->causer_name . ' - ' . $activity->created_at->format('d M Y H:i')
                         )->implode("\n");
                     }),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Dibuat')
+                    ->label('Created')
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Diperbarui')
+                    ->label('Updated')
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('role')
+                Tables\Filters\SelectFilter::make('roles')
                     ->label('Filter Role')
-                    ->options([
-                        'manager' => 'Manager',
-                        'staff' => 'Staff',
-                    ])
-                    ->multiple(),
+                    ->relationship('roles', 'name')
+                    ->multiple()
+                    ->preload(),
 
                 Tables\Filters\Filter::make('email_verified')
-                    ->label('Email Terverifikasi')
+                    ->label('Email Verified')
                     ->query(fn (Builder $query): Builder => $query->whereNotNull('email_verified_at'))
                     ->toggle(),
 
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         Forms\Components\DatePicker::make('created_from')
-                            ->label('Dibuat dari tanggal'),
+                            ->label('Created from date'),
                         Forms\Components\DatePicker::make('created_until')
-                            ->label('Dibuat sampai tanggal'),
+                            ->label('Created until date'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -194,11 +192,11 @@ class UserResource extends Resource
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
                         if ($data['created_from'] ?? null) {
-                            $indicators[] = Tables\Filters\Indicator::make('Dibuat dari ' . \Carbon\Carbon::parse($data['created_from'])->toFormattedDateString())
+                            $indicators[] = Tables\Filters\Indicator::make('Created from ' . \Carbon\Carbon::parse($data['created_from'])->toFormattedDateString())
                                 ->removeField('created_from');
                         }
                         if ($data['created_until'] ?? null) {
-                            $indicators[] = Tables\Filters\Indicator::make('Dibuat sampai ' . \Carbon\Carbon::parse($data['created_until'])->toFormattedDateString())
+                            $indicators[] = Tables\Filters\Indicator::make('Created until ' . \Carbon\Carbon::parse($data['created_until'])->toFormattedDateString())
                                 ->removeField('created_until');
                         }
                         return $indicators;
@@ -211,37 +209,37 @@ class UserResource extends Resource
                     ->color('warning'),
                 Tables\Actions\DeleteAction::make()
                     ->requiresConfirmation()
-                    ->modalHeading('Hapus User')
-                    ->modalDescription('Apakah Anda yakin ingin menghapus user ini? Data yang sudah dihapus tidak dapat dikembalikan.')
-                    ->modalSubmitActionLabel('Ya, Hapus'),
+                    ->modalHeading('Delete User')
+                    ->modalDescription('Are you sure you want to delete this user? This action cannot be undone.')
+                    ->modalSubmitActionLabel('Yes, Delete'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->label('Hapus Terpilih')
+                        ->label('Delete Selected')
                         ->icon('heroicon-o-trash')
                         ->requiresConfirmation()
-                        ->modalHeading('Hapus User Terpilih')
-                        ->modalDescription('Apakah Anda yakin ingin menghapus semua user yang dipilih? Data yang sudah dihapus tidak dapat dikembalikan.')
-                        ->modalSubmitActionLabel('Ya, Hapus Semua'),
+                        ->modalHeading('Delete Selected Users')
+                        ->modalDescription('Are you sure you want to delete all selected users? This action cannot be undone.')
+                        ->modalSubmitActionLabel('Yes, Delete All'),
                 ]),
             ])
             ->defaultSort('created_at', 'desc')
             ->emptyStateIcon('heroicon-o-user')
-            ->emptyStateHeading('Belum ada data user')
-            ->emptyStateDescription('Hasil pencarian tidak ditemukan.');
+            ->emptyStateHeading('No user data yet')
+            ->emptyStateDescription('Search results not found.');
     }
 
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist
             ->schema([
-                Infolists\Components\Section::make('Informasi User')
+                Infolists\Components\Section::make('User Information')
                     ->schema([
                         Infolists\Components\Grid::make(2)
                             ->schema([
                                 Infolists\Components\TextEntry::make('name')
-                                    ->label('Nama User')
+                                    ->label('User Name')
                                     ->size('lg')
                                     ->weight('bold')
                                     ->icon('heroicon-o-user'),
@@ -250,34 +248,26 @@ class UserResource extends Resource
                                     ->label('Email')
                                     ->icon('heroicon-o-envelope')
                                     ->copyable()
-                                    ->copyMessage('Email berhasil disalin'),
+                                    ->copyMessage('Email copied successfully'),
 
-                                Infolists\Components\TextEntry::make('role')
-                                    ->label('Role')
+                                Infolists\Components\TextEntry::make('roles.name')
+                                    ->label('Roles')
                                     ->icon('heroicon-o-shield-check')
                                     ->badge()
-                                    ->color(fn (string $state): string => match ($state) {
-                                        'manager' => 'warning',
-                                        'staff' => 'info',
-                                        default => 'gray',
-                                    })
-                                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                                        'manager' => 'Manager',
-                                        'staff' => 'Staff',
-                                        default => $state,
-                                    }),
+                                    ->separator(',')
+                                    ->color('info'),
 
                                 Infolists\Components\TextEntry::make('email_verified_at')
-                                    ->label('Status Email')
+                                    ->label('Email Status')
                                     ->icon('heroicon-o-check-circle')
                                     ->badge()
                                     ->color(fn ($state): string => $state ? 'success' : 'warning')
-                                    ->formatStateUsing(fn ($state): string => $state ? 'Terverifikasi pada ' . \Carbon\Carbon::parse($state)->format('d F Y, H:i:s') : 'Belum Diverifikasi'),
+                                    ->formatStateUsing(fn ($state): string => $state ? 'Verified on ' . \Carbon\Carbon::parse($state)->format('d F Y, H:i:s') : 'Not Verified'),
                             ]),
                     ])
                     ->icon('heroicon-o-information-circle'),
 
-                Infolists\Components\Section::make('Riwayat Aktivitas')
+                Infolists\Components\Section::make('Activity History')
                     ->schema([
                         Infolists\Components\RepeatableEntry::make('activityLogs')
                             ->label('')
@@ -285,22 +275,22 @@ class UserResource extends Resource
                                 Infolists\Components\Grid::make(3)
                                     ->schema([
                                         Infolists\Components\TextEntry::make('event')
-                                            ->label('Aktivitas')
+                                            ->label('Activity')
                                             ->badge()
                                             ->color(fn (ActivityLog $record): string => $record->event_color)
                                             ->formatStateUsing(fn (ActivityLog $record): string => $record->event_label),
 
                                         Infolists\Components\TextEntry::make('causer_name')
-                                            ->label('Dilakukan oleh')
+                                            ->label('Performed by')
                                             ->icon('heroicon-o-user'),
 
                                         Infolists\Components\TextEntry::make('created_at')
-                                            ->label('Waktu')
+                                            ->label('Time')
                                             ->dateTime('d M Y, H:i:s')
                                             ->since(),
                                     ]),
                                 Infolists\Components\TextEntry::make('description')
-                                    ->label('Deskripsi')
+                                    ->label('Description')
                                     ->columnSpanFull(),
                             ])
                             ->contained(false)
@@ -308,17 +298,17 @@ class UserResource extends Resource
                     ->icon('heroicon-o-clock')
                     ->collapsible(),
 
-                Infolists\Components\Section::make('Informasi Sistem')
+                Infolists\Components\Section::make('System Information')
                     ->schema([
                         Infolists\Components\Grid::make(2)
                             ->schema([
                                 Infolists\Components\TextEntry::make('created_at')
-                                    ->label('Dibuat Pada')
+                                    ->label('Created At')
                                     ->dateTime('d F Y, H:i:s')
                                     ->icon('heroicon-o-calendar-days'),
 
                                 Infolists\Components\TextEntry::make('updated_at')
-                                    ->label('Terakhir Diperbarui')
+                                    ->label('Last Updated')
                                     ->dateTime('d F Y, H:i:s')
                                     ->icon('heroicon-o-clock'),
                             ]),
@@ -358,18 +348,14 @@ class UserResource extends Resource
 
     public static function getGloballySearchableAttributes(): array
     {
-        return ['name', 'email', 'role'];
+        return ['name', 'email', 'roles.name'];
     }
 
     public static function getGlobalSearchResultDetails(Model $record): array
     {
         return [
             'Email' => $record->email,
-            'Role' => match ($record->role) {
-                'manager' => 'Manager',
-                'staff' => 'Staff',
-                default => $record->role,
-            },
+            'Roles' => $record->roles->pluck('name')->join(', '),
         ];
     }
 }

@@ -60,11 +60,11 @@ class ActivityLog extends Model
     public function getEventLabelAttribute(): string
     {
         return match ($this->event) {
-            'created' => 'Dibuat',
-            'updated' => 'Diperbarui',
-            'deleted' => 'Dihapus',
-            'password_reset' => 'Password Direset',
-            'email_verified' => 'Email Diverifikasi',
+           'created' => 'Created',
+'updated' => 'Updated',
+'deleted' => 'Deleted',
+'password_reset' => 'Password Reset',
+'email_verified' => 'Email Verified',
             default => ucfirst($this->event),
         };
     }

@@ -18,7 +18,7 @@ class CreateUser extends CreateRecord
 
     protected function getCreatedNotification(): ?Notification
     {
-        return null; // Disable default notification, kita buat custom di afterCreate
+        return null; // Disable default notification, we create custom in afterCreate
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array
@@ -31,21 +31,21 @@ class CreateUser extends CreateRecord
 
     protected function afterCreate(): void
     {
-        // Kirim email verifikasi otomatis setelah user dibuat
+        // Send email verification automatically after user is created
         $emailSent = $this->record->sendEmailVerificationNotification();
 
         if ($emailSent) {
             Notification::make()
                 ->success()
-                ->title('User berhasil ditambahkan')
-                ->body('Data user baru telah disimpan dan email verifikasi telah dikirim ke ' . $this->record->email)
+                ->title('User successfully added')
+                ->body('New user data has been saved and verification email has been sent to ' . $this->record->email)
                 ->duration(5000)
                 ->send();
         } else {
             Notification::make()
                 ->warning()
-                ->title('User berhasil ditambahkan')
-                ->body('User berhasil dibuat, namun email verifikasi gagal dikirim. Anda dapat mengirim ulang dari halaman detail user.')
+                ->title('User successfully added')
+                ->body('User was created successfully, but verification email failed to send. You can resend it from the user detail page.')
                 ->duration(7000)
                 ->send();
         }
@@ -54,9 +54,9 @@ class CreateUser extends CreateRecord
     protected function getFormActions(): array
     {
         return [
-            $this->getCreateFormAction()->label('Simpan User'),
-            $this->getCreateAnotherFormAction()->label('Simpan & Tambah Lagi'),
-            $this->getCancelFormAction()->label('Batal'),
+            $this->getCreateFormAction()->label('Save User'),
+            $this->getCreateAnotherFormAction()->label('Save & Add Another'),
+            $this->getCancelFormAction()->label('Cancel'),
         ];
     }
 }

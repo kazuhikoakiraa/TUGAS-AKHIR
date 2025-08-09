@@ -18,26 +18,26 @@ class EditUser extends EditRecord
     {
         return [
             Actions\ViewAction::make()
-                ->label('Lihat Detail')
+                ->label('View Details')
                 ->icon('heroicon-o-eye'),
 
             Actions\DeleteAction::make()
-                ->label('Hapus User')
+                ->label('Delete User')
                 ->icon('heroicon-o-trash')
                 ->requiresConfirmation()
-                ->modalHeading('Hapus User')
-                ->modalDescription('Apakah Anda yakin ingin menghapus user ini? Tindakan ini tidak dapat dibatalkan.')
-                ->modalSubmitActionLabel('Ya, Hapus')
+                ->modalHeading('Delete User')
+                ->modalDescription('Are you sure you want to delete this user? This action cannot be undone.')
+                ->modalSubmitActionLabel('Yes, Delete')
                 ->successRedirectUrl(fn () => static::getResource()::getUrl('index')),
 
             Actions\Action::make('sendPasswordResetEmail')
-                ->label('Kirim Reset Password')
+                ->label('Send Password Reset')
                 ->icon('heroicon-o-envelope')
                 ->color('warning')
                 ->requiresConfirmation()
-                ->modalHeading('Kirim Email Reset Password')
-                ->modalDescription('Email reset password akan dikirim ke alamat email user. User akan menerima link untuk mengubah password mereka sendiri.')
-                ->modalSubmitActionLabel('Ya, Kirim Email')
+                ->modalHeading('Send Password Reset Email')
+                ->modalDescription('A password reset email will be sent to the user\'s email address. The user will receive a link to change their password themselves.')
+                ->modalSubmitActionLabel('Yes, Send Email')
                 ->action(function ($record) {
                     // Send password reset notification
                     $status = Password::sendResetLink(
@@ -52,7 +52,7 @@ class EditUser extends EditRecord
                             'causer_type' => Auth::check() ? get_class(Auth::user()) : null,
                             'causer_id' => Auth::id(),
                             'event' => 'password_reset_sent',
-                            'description' => 'Password reset email sent to user',
+                            'description' => 'Password reset email has been sent to user',
                             'properties' => json_encode([
                                 'email' => $record->email,
                                 'sent_by' => Auth::user()?->name ?? 'System',
@@ -62,15 +62,15 @@ class EditUser extends EditRecord
 
                         Notification::make()
                             ->success()
-                            ->title('Email reset password berhasil dikirim')
-                            ->body('User akan menerima email dengan link untuk reset password.')
+                            ->title('Password reset email sent successfully')
+                            ->body('The user will receive an email with a link to reset their password.')
                             ->duration(5000)
                             ->send();
                     } else {
                         Notification::make()
                             ->danger()
-                            ->title('Gagal mengirim email')
-                            ->body('Terjadi kesalahan saat mengirim email reset password.')
+                            ->title('Failed to send email')
+                            ->body('An error occurred while sending the password reset email.')
                             ->duration(5000)
                             ->send();
                     }
@@ -87,14 +87,14 @@ class EditUser extends EditRecord
     {
         return Notification::make()
             ->success()
-            ->title('User berhasil diperbarui')
-            ->body('Data user telah berhasil diperbarui.')
+            ->title('User updated successfully')
+            ->body('User data has been successfully updated.')
             ->duration(5000);
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Bersihkan dan format data sebelum disimpan
+        // Clean and format data before saving
         $data['name'] = trim($data['name']);
         $data['email'] = strtolower(trim($data['email']));
 
@@ -105,9 +105,9 @@ class EditUser extends EditRecord
     {
         return [
             $this->getSaveFormAction()
-                ->label('Simpan Perubahan'),
+                ->label('Save Changes'),
             $this->getCancelFormAction()
-                ->label('Batal'),
+                ->label('Cancel'),
         ];
     }
 }

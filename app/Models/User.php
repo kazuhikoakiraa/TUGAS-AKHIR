@@ -116,10 +116,10 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(PoSupplier::class, 'id_user');
     }
 
-    // public function suratJalan(): HasMany
-    // {
-    //     return $this->hasMany(SuratJalan::class, 'id_user');
-    // }
+    public function suratJalan(): HasMany
+    {
+        return $this->hasMany(SuratJalan::class, 'id_user');
+    }
 
     // public function invoices(): HasMany
     // {

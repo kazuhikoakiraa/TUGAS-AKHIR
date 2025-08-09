@@ -16,7 +16,7 @@ class ListUsers extends ListRecords
     {
         return [
             Actions\CreateAction::make()
-                ->label('Tambah User')
+                ->label('Add User')
                 ->icon('heroicon-o-plus')
                 ->modalWidth('2xl'),
         ];
@@ -25,14 +25,14 @@ class ListUsers extends ListRecords
     public function getTabs(): array
     {
         return [
-            'all' => Tab::make('Semua User')
+            'all' => Tab::make('All Users')
                 ->badge(fn () => $this->getModel()::count()),
 
-            'recent' => Tab::make('Terbaru')
+            'recent' => Tab::make('Recent')
                 ->badge(fn () => $this->getModel()::where('created_at', '>=', now()->subDays(7))->count())
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('created_at', '>=', now()->subDays(7))),
 
-            'verified' => Tab::make('Terverifikasi')
+            'verified' => Tab::make('Verified')
                 ->badge(fn () => $this->getModel()::whereNotNull('email_verified_at')->count())
                 ->modifyQueryUsing(fn (Builder $query) => $query->whereNotNull('email_verified_at')),
         ];

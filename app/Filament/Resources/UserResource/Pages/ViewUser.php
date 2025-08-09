@@ -23,22 +23,22 @@ class ViewUser extends ViewRecord
                 ->modalWidth('2xl'),
 
             Actions\DeleteAction::make()
-                ->label('Hapus User')
+                ->label('Delete User')
                 ->icon('heroicon-o-trash')
                 ->requiresConfirmation()
-                ->modalHeading('Hapus User')
-                ->modalDescription('Apakah Anda yakin ingin menghapus user ini? Tindakan ini tidak dapat dibatalkan.')
-                ->modalSubmitActionLabel('Ya, Hapus')
+                ->modalHeading('Delete User')
+                ->modalDescription('Are you sure you want to delete this user? This action cannot be undone.')
+                ->modalSubmitActionLabel('Yes, Delete')
                 ->successRedirectUrl(fn () => static::getResource()::getUrl('index')),
 
             Actions\Action::make('sendPasswordResetEmail')
-                ->label('Kirim Reset Password')
+                ->label('Send Password Reset')
                 ->icon('heroicon-o-envelope')
                 ->color('warning')
                 ->requiresConfirmation()
-                ->modalHeading('Kirim Email Reset Password')
-                ->modalDescription('Email reset password akan dikirim ke alamat email user. User akan menerima link untuk mengubah password mereka sendiri.')
-                ->modalSubmitActionLabel('Ya, Kirim Email')
+                ->modalHeading('Send Password Reset Email')
+                ->modalDescription('A password reset email will be sent to the user\'s email address. The user will receive a link to change their password themselves.')
+                ->modalSubmitActionLabel('Yes, Send Email')
                 ->action(function ($record) {
                     // Send password reset notification
                     $status = Password::sendResetLink(
@@ -53,7 +53,7 @@ class ViewUser extends ViewRecord
                             'causer_type' => Auth::check() ? get_class(Auth::user()) : null,
                             'causer_id' => Auth::id(),
                             'event' => 'password_reset_sent',
-                            'description' => 'Password reset email sent to user',
+                            'description' => 'Password reset email has been sent to user',
                             'properties' => json_encode([
                                 'email' => $record->email,
                                 'sent_by' => Auth::user()?->name ?? 'System',
@@ -63,28 +63,28 @@ class ViewUser extends ViewRecord
 
                         Notification::make()
                             ->success()
-                            ->title('Email reset password berhasil dikirim')
-                            ->body('User akan menerima email dengan link untuk reset password.')
+                            ->title('Password reset email sent successfully')
+                            ->body('The user will receive an email with a link to reset their password.')
                             ->duration(5000)
                             ->send();
                     } else {
                         Notification::make()
                             ->danger()
-                            ->title('Gagal mengirim email')
-                            ->body('Terjadi kesalahan saat mengirim email reset password.')
+                            ->title('Failed to send email')
+                            ->body('An error occurred while sending the password reset email.')
                             ->duration(5000)
                             ->send();
                     }
                 }),
 
             Actions\Action::make('sendVerificationEmail')
-                ->label('Kirim Verifikasi Email')
+                ->label('Send Email Verification')
                 ->icon('heroicon-o-paper-airplane')
                 ->color('info')
                 ->requiresConfirmation()
-                ->modalHeading('Kirim Email Verifikasi')
-                ->modalDescription('Email verifikasi akan dikirim ke alamat email user.')
-                ->modalSubmitActionLabel('Ya, Kirim Email')
+                ->modalHeading('Send Email Verification')
+                ->modalDescription('A verification email will be sent to the user\'s email address.')
+                ->modalSubmitActionLabel('Yes, Send Email')
                 ->visible(fn ($record) => !$record->email_verified_at)
                 ->action(function ($record) {
                     try {
@@ -98,7 +98,7 @@ class ViewUser extends ViewRecord
                             'causer_type' => Auth::check() ? get_class(Auth::user()) : null,
                             'causer_id' => Auth::id(),
                             'event' => 'verification_email_sent',
-                            'description' => 'Email verification sent to user',
+                            'description' => 'Email verification has been sent to user',
                             'properties' => json_encode([
                                 'email' => $record->email,
                                 'sent_by' => Auth::user()?->name ?? 'System',
@@ -108,28 +108,28 @@ class ViewUser extends ViewRecord
 
                         Notification::make()
                             ->success()
-                            ->title('Email verifikasi berhasil dikirim')
-                            ->body('User akan menerima email untuk memverifikasi alamat email mereka.')
+                            ->title('Verification email sent successfully')
+                            ->body('The user will receive an email to verify their email address.')
                             ->duration(5000)
                             ->send();
                     } catch (\Exception $e) {
                         Notification::make()
                             ->danger()
-                            ->title('Gagal mengirim email')
-                            ->body('Terjadi kesalahan saat mengirim email verifikasi.')
+                            ->title('Failed to send email')
+                            ->body('An error occurred while sending the verification email.')
                             ->duration(5000)
                             ->send();
                     }
                 }),
 
             Actions\Action::make('verifyEmailManually')
-                ->label('Verifikasi Manual')
+                ->label('Manual Verification')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
                 ->requiresConfirmation()
-                ->modalHeading('Verifikasi Email Manual')
-                ->modalDescription('Email user akan ditandai sebagai terverifikasi secara manual.')
-                ->modalSubmitActionLabel('Ya, Verifikasi')
+                ->modalHeading('Manual Email Verification')
+                ->modalDescription('The user\'s email will be marked as verified manually.')
+                ->modalSubmitActionLabel('Yes, Verify')
                 ->visible(fn ($record) => !$record->email_verified_at)
                 ->action(function ($record) {
                     $record->update([
@@ -153,8 +153,8 @@ class ViewUser extends ViewRecord
 
                     Notification::make()
                         ->success()
-                        ->title('Email berhasil diverifikasi')
-                        ->body('Email user telah berhasil diverifikasi secara manual.')
+                        ->title('Email verified successfully')
+                        ->body('The user\'s email has been successfully verified manually.')
                         ->duration(5000)
                         ->send();
                 }),

@@ -22,33 +22,33 @@ class CreateSuratJalan extends CreateRecord
     protected function getCreateFormAction(): \Filament\Actions\Action
     {
         return parent::getCreateFormAction()
-            ->label('Buat Surat Jalan')
+            ->label('Create Delivery Note')
             ->icon('heroicon-o-plus');
     }
 
     protected function getCancelFormAction(): \Filament\Actions\Action
     {
         return parent::getCancelFormAction()
-            ->label('Batal');
+            ->label('Cancel');
     }
 
     protected function handleRecordCreation(array $data): Model
     {
         try {
-            // Validasi tambahan sebelum membuat record
+            // Additional validation before creating record
             $this->validatePoCustomer($data['id_po_customer'] ?? null);
 
-            // Set user ID jika belum ada
+            // Set user ID if not present
             if (empty($data['id_user'])) {
                 $data['id_user'] = \Illuminate\Support\Facades\Auth::id();
             }
 
             $record = static::getModel()::create($data);
 
-            // Notifikasi sukses
+            // Success notification
             Notification::make()
-                ->title('Surat Jalan Berhasil Dibuat')
-                ->body("Surat jalan dengan nomor {$record->nomor_surat_jalan} telah berhasil dibuat.")
+                ->title('Delivery Note Created Successfully')
+                ->body("Delivery note with number {$record->nomor_surat_jalan} has been created successfully.")
                 ->success()
                 ->send();
 
@@ -58,58 +58,58 @@ class CreateSuratJalan extends CreateRecord
             throw $e;
         } catch (\Exception $e) {
             Notification::make()
-                ->title('Error Membuat Surat Jalan')
-                ->body('Terjadi kesalahan saat membuat surat jalan: ' . $e->getMessage())
+                ->title('Error Creating Delivery Note')
+                ->body('An error occurred while creating the delivery note: ' . $e->getMessage())
                 ->danger()
                 ->send();
 
-            throw new ValidationException(validator([], []), ['error' => 'Gagal membuat surat jalan: ' . $e->getMessage()]);
+            throw new ValidationException(validator([], []), ['error' => 'Failed to create delivery note: ' . $e->getMessage()]);
         }
     }
 
     /**
-     * Validasi PO Customer
+     * Validate Customer PO
      */
     private function validatePoCustomer(?int $poCustomerId): void
     {
         if (!$poCustomerId) {
-            throw new ValidationException(validator([], []), ['id_po_customer' => 'PO Customer harus dipilih.']);
+            throw new ValidationException(validator([], []), ['id_po_customer' => 'Customer PO must be selected.']);
         }
 
-        // Cek apakah PO Customer exists dan valid
+        // Check if Customer PO exists and is valid
         $po = PoCustomer::with('customer')->find($poCustomerId);
 
         if (!$po) {
-            throw new ValidationException(validator([], []), ['id_po_customer' => 'PO Customer tidak ditemukan.']);
+            throw new ValidationException(validator([], []), ['id_po_customer' => 'Customer PO not found.']);
         }
 
-        // Cek apakah PO sudah memiliki surat jalan
+        // Check if PO already has a delivery note
         $existingSuratJalan = SuratJalan::where('id_po_customer', $poCustomerId)->first();
         if ($existingSuratJalan) {
-            throw new ValidationException(validator([], []), ['id_po_customer' => 'PO Customer ini sudah memiliki surat jalan dengan nomor: ' . $existingSuratJalan->nomor_surat_jalan]);
+            throw new ValidationException(validator([], []), ['id_po_customer' => 'This Customer PO already has a delivery note with number: ' . $existingSuratJalan->nomor_surat_jalan]);
         }
 
-        // Cek status PO
+        // Check PO status
         if ($po->status_po !== \App\Enums\PoStatus::APPROVED) {
-            throw new ValidationException(validator([], []), ['id_po_customer' => 'PO Customer harus berstatus APPROVED untuk dapat dibuatkan surat jalan.']);
+            throw new ValidationException(validator([], []), ['id_po_customer' => 'Customer PO must have APPROVED status to create a delivery note.']);
         }
 
-        // Cek jenis PO
+        // Check PO type
         if ($po->jenis_po !== 'Produk') {
-            throw new ValidationException(validator([], []), ['id_po_customer' => 'Hanya PO dengan jenis "Produk" yang dapat dibuatkan surat jalan.']);
+            throw new ValidationException(validator([], []), ['id_po_customer' => 'Only POs with type "Produk" can have delivery notes created.']);
         }
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // Pastikan user_id terisi
+        // Ensure user_id is set
         $data['id_user'] = \Illuminate\Support\Facades\Auth::id();
 
-        // Validasi tanggal
+        // Validate date
         if (isset($data['tanggal'])) {
             $tanggal = \Carbon\Carbon::parse($data['tanggal']);
             if ($tanggal->isPast() && $tanggal->diffInDays(now()) > 7) {
-                throw new ValidationException(validator([], []), ['tanggal' => 'Tanggal pengiriman tidak boleh lebih dari 7 hari yang lalu.']);
+                throw new ValidationException(validator([], []), ['tanggal' => 'Delivery date cannot be more than 7 days in the past.']);
             }
         }
 
@@ -120,7 +120,7 @@ class CreateSuratJalan extends CreateRecord
     {
         return [
             \Filament\Actions\Action::make('back')
-                ->label('Kembali ke Daftar')
+                ->label('Back to List')
                 ->icon('heroicon-o-arrow-left')
                 ->color('gray')
                 ->url($this->getResource()::getUrl('index')),

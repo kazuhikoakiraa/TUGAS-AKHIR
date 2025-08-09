@@ -22,24 +22,24 @@ class EditSuratJalan extends EditRecord
                 ->color('info'),
 
             Actions\Action::make('print_pdf')
-                ->label('Cetak PDF')
+                ->label('Print PDF')
                 ->icon('heroicon-o-printer')
                 ->color('success')
                 ->url(fn (): string => route('surat-jalan.pdf', $this->record))
                 ->openUrlInNewTab()
-                ->tooltip('Cetak Surat Jalan dalam format PDF'),
+                ->tooltip('Print Delivery Note in PDF format'),
 
             Actions\DeleteAction::make()
                 ->color('danger')
                 ->requiresConfirmation()
-                ->modalHeading('Hapus Surat Jalan')
-                ->modalDescription('Apakah Anda yakin ingin menghapus surat jalan ini? Tindakan ini tidak dapat dibatalkan.')
-                ->modalSubmitActionLabel('Ya, Hapus')
+                ->modalHeading('Delete Delivery Note')
+                ->modalDescription('Are you sure you want to delete this delivery note? This action cannot be undone.')
+                ->modalSubmitActionLabel('Yes, Delete')
                 ->successNotification(
                     Notification::make()
                         ->success()
-                        ->title('Surat Jalan Dihapus')
-                        ->body('Surat jalan berhasil dihapus.')
+                        ->title('Delivery Note Deleted')
+                        ->body('Delivery note has been successfully deleted.')
                 ),
         ];
     }
@@ -52,28 +52,28 @@ class EditSuratJalan extends EditRecord
     protected function getSaveFormAction(): \Filament\Actions\Action
     {
         return parent::getSaveFormAction()
-            ->label('Simpan Perubahan')
+            ->label('Save Changes')
             ->icon('heroicon-o-check');
     }
 
     protected function getCancelFormAction(): \Filament\Actions\Action
     {
         return parent::getCancelFormAction()
-            ->label('Batal');
+            ->label('Cancel');
     }
 
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         try {
-            // Validasi tambahan untuk edit
+            // Additional validation for edit
             $this->validatePoCustomerForEdit($data['id_po_customer'] ?? null, $record->id);
 
             $record->update($data);
 
-            // Notifikasi sukses
+            // Success notification
             Notification::make()
-                ->title('Surat Jalan Berhasil Diperbarui')
-                ->body("Surat jalan {$record->nomor_surat_jalan} telah berhasil diperbarui.")
+                ->title('Delivery Note Updated Successfully')
+                ->body("Delivery note {$record->nomor_surat_jalan} has been updated successfully.")
                 ->success()
                 ->send();
 
@@ -83,51 +83,51 @@ class EditSuratJalan extends EditRecord
             throw $e;
         } catch (\Exception $e) {
             Notification::make()
-                ->title('Error Memperbarui Surat Jalan')
-                ->body('Terjadi kesalahan saat memperbarui surat jalan: ' . $e->getMessage())
+                ->title('Error Updating Delivery Note')
+                ->body('An error occurred while updating the delivery note: ' . $e->getMessage())
                 ->danger()
                 ->send();
 
-            throw new ValidationException(validator([], []), ['error' => 'Gagal memperbarui surat jalan: ' . $e->getMessage()]);
+            throw new ValidationException(validator([], []), ['error' => 'Failed to update delivery note: ' . $e->getMessage()]);
         }
     }
 
     /**
-     * Validasi PO Customer untuk edit
+     * Validate Customer PO for edit
      */
     private function validatePoCustomerForEdit(?int $poCustomerId, int $currentRecordId): void
     {
         if (!$poCustomerId) {
-            throw new ValidationException(validator([], []), ['id_po_customer' => 'PO Customer harus dipilih.']);
+            throw new ValidationException(validator([], []), ['id_po_customer' => 'Customer PO must be selected.']);
         }
 
-        // Cek apakah PO Customer exists dan valid
+        // Check if Customer PO exists and is valid
         $po = PoCustomer::with('customer')->find($poCustomerId);
 
         if (!$po) {
-            throw new ValidationException(validator([], []), ['id_po_customer' => 'PO Customer tidak ditemukan.']);
+            throw new ValidationException(validator([], []), ['id_po_customer' => 'Customer PO not found.']);
         }
 
-        // Cek apakah PO sudah memiliki surat jalan lain (selain yang sedang diedit)
+        // Check if PO already has another delivery note (excluding the one being edited)
         $existingSuratJalan = SuratJalan::where('id_po_customer', $poCustomerId)
                                        ->where('id', '!=', $currentRecordId)
                                        ->first();
 
         if ($existingSuratJalan) {
-            throw new ValidationException(validator([], []), ['id_po_customer' => 'PO Customer ini sudah memiliki surat jalan lain dengan nomor: ' . $existingSuratJalan->nomor_surat_jalan]);
+            throw new ValidationException(validator([], []), ['id_po_customer' => 'This Customer PO already has another delivery note with number: ' . $existingSuratJalan->nomor_surat_jalan]);
         }
 
-        // Cek status PO
+        // Check PO status
         if ($po->status_po !== \App\Enums\PoStatus::APPROVED) {
-            throw new ValidationException(validator([], []), ['id_po_customer' => 'PO Customer harus berstatus APPROVED.']);
+            throw new ValidationException(validator([], []), ['id_po_customer' => 'Customer PO must have APPROVED status.']);
         }
 
         if ($po->jenis_po !== 'Produk') {
-            throw new ValidationException(validator([], []), ['id_po_customer' => 'Hanya PO dengan jenis "Produk" yang dapat dibuatkan surat jalan.']);
+            throw new ValidationException(validator([], []), ['id_po_customer' => 'Only POs with type "Produk" can have delivery notes created.']);
         }
     }
 
-    // If you need tanggal validation, move it to handleRecordUpdate or another appropriate method.
+    // If you need date validation, move it to handleRecordUpdate or another appropriate method.
 
     protected function getFormActions(): array
     {

@@ -17,7 +17,7 @@ class ListSuratJalans extends ListRecords
     {
         return [
             Actions\CreateAction::make()
-                ->label('Buat Surat Jalan')
+                ->label('Create Delivery Note')
                 ->icon('heroicon-o-plus')
                 ->color('primary'),
         ];
@@ -26,16 +26,16 @@ class ListSuratJalans extends ListRecords
     public function getTabs(): array
     {
         return [
-            'semua' => Tab::make('Semua')
+            'all' => Tab::make('All')
                 ->badge(SuratJalan::count())
                 ->badgeColor('primary'),
 
-            'hari_ini' => Tab::make('Hari Ini')
+            'today' => Tab::make('Today')
                 ->modifyQueryUsing(fn (Builder $query) => $query->whereDate('tanggal', today()))
                 ->badge(SuratJalan::whereDate('tanggal', today())->count())
                 ->badgeColor('success'),
 
-            'minggu_ini' => Tab::make('Minggu Ini')
+            'this_week' => Tab::make('This Week')
                 ->modifyQueryUsing(fn (Builder $query) => $query->whereBetween('tanggal', [
                     now()->startOfWeek(),
                     now()->endOfWeek()
@@ -46,14 +46,14 @@ class ListSuratJalans extends ListRecords
                 ])->count())
                 ->badgeColor('info'),
 
-            'bulan_ini' => Tab::make('Bulan Ini')
+            'this_month' => Tab::make('This Month')
                 ->modifyQueryUsing(fn (Builder $query) => $query->whereMonth('tanggal', now()->month)
                     ->whereYear('tanggal', now()->year))
                 ->badge(SuratJalan::whereMonth('tanggal', now()->month)
                     ->whereYear('tanggal', now()->year)->count())
                 ->badgeColor('warning'),
 
-            'lewat_jatuh_tempo' => Tab::make('Lewat Tanggal')
+            'overdue' => Tab::make('Overdue')
                 ->modifyQueryUsing(fn (Builder $query) => $query->whereDate('tanggal', '<', today()))
                 ->badge(SuratJalan::whereDate('tanggal', '<', today())->count())
                 ->badgeColor('danger'),
@@ -73,19 +73,19 @@ class ListSuratJalans extends ListRecords
 
     protected function getTableEmptyStateHeading(): ?string
     {
-        return 'Belum ada Surat Jalan';
+        return 'No Delivery Notes Yet';
     }
 
     protected function getTableEmptyStateDescription(): ?string
     {
-        return 'Mulai buat surat jalan pertama Anda dengan mengklik tombol "Buat Surat Jalan" di atas.';
+        return 'Start by creating your first delivery note using the "Create Delivery Note" button above.';
     }
 
     protected function getTableEmptyStateActions(): array
     {
         return [
             Actions\CreateAction::make()
-                ->label('Buat Surat Jalan')
+                ->label('Create Delivery Note')
                 ->icon('heroicon-o-plus')
                 ->color('primary'),
         ];

@@ -20,19 +20,19 @@ class ViewSuratJalan extends ViewRecord
                 ->icon('heroicon-o-pencil'),
 
             Actions\Action::make('print_pdf')
-                ->label('Cetak PDF')
+                ->label('Print PDF')
                 ->icon('heroicon-o-printer')
                 ->color('success')
                 ->url(fn (): string => route('surat-jalan.pdf', $this->record))
                 ->openUrlInNewTab()
-                ->tooltip('Cetak Surat Jalan dalam format PDF'),
+                ->tooltip('Print Delivery Note in PDF format'),
 
             Actions\DeleteAction::make()
                 ->color('danger')
                 ->requiresConfirmation()
-                ->modalHeading('Hapus Surat Jalan')
-                ->modalDescription('Apakah Anda yakin ingin menghapus surat jalan ini? Tindakan ini tidak dapat dibatalkan.')
-                ->modalSubmitActionLabel('Ya, Hapus')
+                ->modalHeading('Delete Delivery Note')
+                ->modalDescription('Are you sure you want to delete this delivery note? This action cannot be undone.')
+                ->modalSubmitActionLabel('Yes, Delete')
                 ->successRedirectUrl($this->getResource()::getUrl('index')),
         ];
     }
@@ -41,50 +41,50 @@ class ViewSuratJalan extends ViewRecord
     {
         return $infolist
             ->schema([
-                Infolists\Components\Section::make('Informasi Surat Jalan')
+                Infolists\Components\Section::make('Delivery Note Information')
                     ->schema([
                         Infolists\Components\TextEntry::make('nomor_surat_jalan')
-                            ->label('Nomor Surat Jalan')
+                            ->label('Delivery Note Number')
                             ->badge()
                             ->color('primary')
                             ->size('lg')
                             ->weight('bold'),
 
                         Infolists\Components\TextEntry::make('tanggal')
-                            ->label('Tanggal Pengiriman')
+                            ->label('Delivery Date')
                             ->date('d F Y')
                             ->badge()
                             ->color(fn ($state) => $state && $state->isPast() ? 'danger' : 'success'),
                     ])
                     ->columns(2),
 
-                Infolists\Components\Section::make('Informasi PO Customer')
+                Infolists\Components\Section::make('Customer PO Information')
                     ->schema([
                         Infolists\Components\TextEntry::make('poCustomer.nomor_po')
-                            ->label('Nomor PO')
+                            ->label('PO Number')
                             ->badge()
                             ->color('info'),
 
                         Infolists\Components\TextEntry::make('poCustomer.customer.nama')
-                            ->label('Nama Customer')
+                            ->label('Customer Name')
                             ->weight('bold'),
 
                         Infolists\Components\TextEntry::make('poCustomer.customer.email')
-                            ->label('Email Customer')
+                            ->label('Customer Email')
                             ->icon('heroicon-o-envelope')
                             ->copyable(),
 
                         Infolists\Components\TextEntry::make('poCustomer.customer.telepon')
-                            ->label('Telepon Customer')
+                            ->label('Customer Phone')
                             ->icon('heroicon-o-phone')
                             ->copyable(),
 
                         Infolists\Components\TextEntry::make('poCustomer.tanggal_po')
-                            ->label('Tanggal PO')
+                            ->label('PO Date')
                             ->date('d F Y'),
 
                         Infolists\Components\TextEntry::make('poCustomer.status_po')
-                            ->label('Status PO')
+                            ->label('PO Status')
                             ->badge()
                             ->color(fn ($state) => match ($state) {
                                 \App\Enums\PoStatus::PENDING => 'warning',
@@ -95,27 +95,27 @@ class ViewSuratJalan extends ViewRecord
                     ])
                     ->columns(2),
 
-                Infolists\Components\Section::make('Informasi Pengiriman')
+                Infolists\Components\Section::make('Delivery Information')
                     ->schema([
                         Infolists\Components\TextEntry::make('alamat_pengiriman')
-                            ->label('Alamat Pengiriman')
+                            ->label('Delivery Address')
                             ->columnSpanFull()
                             ->prose(),
                     ]),
 
-                Infolists\Components\Section::make('Informasi Sistem')
+                Infolists\Components\Section::make('System Information')
                     ->schema([
                         Infolists\Components\TextEntry::make('user.name')
-                            ->label('Dibuat Oleh')
+                            ->label('Created By')
                             ->icon('heroicon-o-user'),
 
                         Infolists\Components\TextEntry::make('created_at')
-                            ->label('Dibuat Pada')
+                            ->label('Created At')
                             ->dateTime('d F Y, H:i')
                             ->icon('heroicon-o-calendar'),
 
                         Infolists\Components\TextEntry::make('updated_at')
-                            ->label('Diperbarui Pada')
+                            ->label('Updated At')
                             ->dateTime('d F Y, H:i')
                             ->icon('heroicon-o-clock'),
                     ])

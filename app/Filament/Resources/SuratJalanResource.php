@@ -25,13 +25,13 @@ class SuratJalanResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-truck';
 
-    protected static ?string $navigationLabel = 'Surat Jalan';
+    protected static ?string $navigationLabel = 'Delivery Notes';
 
-    protected static ?string $pluralLabel = 'Surat Jalan';
+    protected static ?string $pluralLabel = 'Delivery Notes';
 
-    protected static ?string $modelLabel = 'Surat Jalan';
+    protected static ?string $modelLabel = 'Delivery Note';
 
-    protected static ?string $navigationGroup = 'Transaksi';
+    protected static ?string $navigationGroup = 'Transactions';
 
     protected static ?int $navigationSort = 4;
 
@@ -39,17 +39,17 @@ class SuratJalanResource extends Resource
     {
         return $form
             ->schema([
-                Section::make('Informasi Surat Jalan')
+                Section::make('Delivery Note Information')
                     ->schema([
                         Forms\Components\TextInput::make('nomor_surat_jalan')
-                            ->label('Nomor Surat Jalan')
+                            ->label('Delivery Note Number')
                             ->disabled()
                             ->dehydrated(false)
-                            ->placeholder('Akan di-generate otomatis')
+                            ->placeholder('Will be auto-generated')
                             ->visible(fn ($record) => $record !== null),
 
                         Forms\Components\Select::make('id_po_customer')
-                            ->label('PO Customer')
+                            ->label('Customer PO')
                             ->relationship(
                                 'poCustomer',
                                 'nomor_po',
@@ -58,14 +58,14 @@ class SuratJalanResource extends Resource
                                           ->where('status_po', PoStatus::APPROVED)
                                           ->with('customer');
 
-                                    // Jika sedang edit, allow PO yang sudah terpilih
+                                    // If editing, allow currently selected PO
                                     if ($operation === 'edit' && $record) {
                                         $query->where(function ($q) use ($record) {
                                             $q->whereDoesntHave('suratJalan')
                                               ->orWhere('id', $record->id_po_customer);
                                         });
                                     } else {
-                                        // Untuk create, hanya tampilkan PO yang belum memiliki surat jalan
+                                        // For create, only show POs without delivery notes
                                         $query->whereDoesntHave('suratJalan');
                                     }
 
@@ -88,18 +88,18 @@ class SuratJalanResource extends Resource
                                             $set('alamat_pengiriman', $po->customer->alamat);
                                         }
                                     } catch (\Exception $e) {
-                                        // Log error jika diperlukan
-                                        Log::error('Error saat mengambil data PO Customer: ' . $e->getMessage());
+                                        // Log error if needed
+                                        Log::error('Error fetching Customer PO data: ' . $e->getMessage());
                                     }
                                 }
                             })
-                            ->validationAttribute('PO Customer'),
+                            ->validationAttribute('Customer PO'),
 
                         Forms\Components\Hidden::make('id_user')
                             ->default(fn () => \Illuminate\Support\Facades\Auth::user()?->id),
 
                         Forms\Components\DatePicker::make('tanggal')
-                            ->label('Tanggal Pengiriman')
+                            ->label('Delivery Date')
                             ->required()
                             ->default(now())
                             ->native(false)
@@ -108,12 +108,12 @@ class SuratJalanResource extends Resource
                             ->maxDate(now()->addMonths(3)), // Max 3 months ahead
 
                         Forms\Components\Textarea::make('alamat_pengiriman')
-                            ->label('Alamat Pengiriman')
+                            ->label('Delivery Address')
                             ->required()
                             ->rows(3)
                             ->maxLength(500)
                             ->columnSpanFull()
-                            ->placeholder('Alamat akan terisi otomatis berdasarkan PO Customer yang dipilih'),
+                            ->placeholder('Address will be auto-filled based on selected Customer PO'),
                     ])
                     ->columns(2),
             ]);
@@ -124,14 +124,14 @@ class SuratJalanResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('nomor_surat_jalan')
-                    ->label('Nomor Surat Jalan')
+                    ->label('Delivery Note Number')
                     ->searchable()
                     ->sortable()
                     ->copyable()
                     ->weight('bold'),
 
                 Tables\Columns\TextColumn::make('poCustomer.nomor_po')
-                    ->label('Nomor PO')
+                    ->label('PO Number')
                     ->searchable(['poCustomer.nomor_po'])
                     ->sortable()
                     ->copyable(),
@@ -147,14 +147,14 @@ class SuratJalanResource extends Resource
                     }),
 
                 Tables\Columns\TextColumn::make('tanggal')
-                    ->label('Tanggal Pengiriman')
+                    ->label('Delivery Date')
                     ->date('d/m/Y')
                     ->sortable()
                     ->badge()
                     ->color(fn ($state) => $state && $state->isPast() ? 'danger' : 'success'),
 
                 Tables\Columns\TextColumn::make('alamat_pengiriman')
-                    ->label('Alamat Pengiriman')
+                    ->label('Delivery Address')
                     ->limit(40)
                     ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
                         $state = $column->getState();
@@ -163,32 +163,32 @@ class SuratJalanResource extends Resource
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Dibuat Oleh')
+                    ->label('Created By')
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Dibuat')
+                    ->label('Created')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Diperbarui')
+                    ->label('Updated')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\Filter::make('tanggal_range')
-                    ->label('Filter Tanggal')
+                    ->label('Date Filter')
                     ->form([
                         Forms\Components\DatePicker::make('dari_tanggal')
-                            ->label('Dari Tanggal')
+                            ->label('From Date')
                             ->native(false)
                             ->displayFormat('d/m/Y'),
                         Forms\Components\DatePicker::make('sampai_tanggal')
-                            ->label('Sampai Tanggal')
+                            ->label('To Date')
                             ->native(false)
                             ->displayFormat('d/m/Y'),
                     ])
@@ -206,10 +206,10 @@ class SuratJalanResource extends Resource
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
                         if ($data['dari_tanggal'] ?? null) {
-                            $indicators['dari_tanggal'] = 'Dari: ' . \Carbon\Carbon::parse($data['dari_tanggal'])->format('d/m/Y');
+                            $indicators['dari_tanggal'] = 'From: ' . \Carbon\Carbon::parse($data['dari_tanggal'])->format('d/m/Y');
                         }
                         if ($data['sampai_tanggal'] ?? null) {
-                            $indicators['sampai_tanggal'] = 'Sampai: ' . \Carbon\Carbon::parse($data['sampai_tanggal'])->format('d/m/Y');
+                            $indicators['sampai_tanggal'] = 'To: ' . \Carbon\Carbon::parse($data['sampai_tanggal'])->format('d/m/Y');
                         }
                         return $indicators;
                     }),
@@ -228,27 +228,27 @@ class SuratJalanResource extends Resource
                     ->color('warning'),
 
                 Tables\Actions\Action::make('print_pdf')
-                    ->label('Cetak PDF')
+                    ->label('Print PDF')
                     ->icon('heroicon-o-printer')
                     ->color('success')
                     ->url(fn (SuratJalan $record): string => route('surat-jalan.pdf', $record))
                     ->openUrlInNewTab()
-                    ->tooltip('Cetak Surat Jalan dalam format PDF'),
+                    ->tooltip('Print Delivery Note in PDF format'),
 
                 Tables\Actions\DeleteAction::make()
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->modalHeading('Hapus Surat Jalan')
-                    ->modalDescription('Apakah Anda yakin ingin menghapus surat jalan ini? Tindakan ini tidak dapat dibatalkan.')
-                    ->modalSubmitActionLabel('Ya, Hapus'),
+                    ->modalHeading('Delete Delivery Note')
+                    ->modalDescription('Are you sure you want to delete this delivery note? This action cannot be undone.')
+                    ->modalSubmitActionLabel('Yes, Delete'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
                         ->requiresConfirmation()
-                        ->modalHeading('Hapus Surat Jalan Terpilih')
-                        ->modalDescription('Apakah Anda yakin ingin menghapus surat jalan yang dipilih? Tindakan ini tidak dapat dibatalkan.')
-                        ->modalSubmitActionLabel('Ya, Hapus Semua'),
+                        ->modalHeading('Delete Selected Delivery Notes')
+                        ->modalDescription('Are you sure you want to delete the selected delivery notes? This action cannot be undone.')
+                        ->modalSubmitActionLabel('Yes, Delete All'),
                 ]),
             ])
             ->defaultSort('created_at', 'desc')
@@ -289,7 +289,7 @@ class SuratJalanResource extends Resource
         ];
     }
 
-    // Navigation badge untuk menampilkan jumlah surat jalan bulan ini
+    // Navigation badge to show delivery notes count for this month
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::whereMonth('created_at', now()->month)

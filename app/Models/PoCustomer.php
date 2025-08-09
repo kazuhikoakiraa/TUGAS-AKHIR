@@ -48,10 +48,10 @@ class PoCustomer extends Model
         return $this->hasMany(PoCustomerDetail::class, 'id_po_customer');
     }
 
-    // public function suratJalan(): HasOne
-    // {
-    //     return $this->hasOne(SuratJalan::class, 'id_po_customer');
-    // }
+    public function suratJalan(): HasOne
+    {
+        return $this->hasOne(SuratJalan::class, 'id_po_customer');
+    }
 
     // public function invoice(): HasOne
     // {

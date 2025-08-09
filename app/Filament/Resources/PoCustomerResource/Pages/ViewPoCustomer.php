@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\PoCustomerResource\Pages;
 
 use App\Filament\Resources\PoCustomerResource;
-use App\Enums\PoStatus; // Tambahkan import ini
+use App\Enums\PoStatus;
 use Filament\Actions;
 use Filament\Infolists\Components\Grid;
 use Filament\Infolists\Components\Group;
@@ -17,7 +17,7 @@ class ViewPoCustomer extends ViewRecord
 {
     protected static string $resource = PoCustomerResource::class;
 
-    protected static ?string $title = 'Detail Purchase Order Customer';
+    protected static ?string $title = 'Customer Purchase Order Details';
 
     protected function getHeaderActions(): array
     {
@@ -30,13 +30,13 @@ class ViewPoCustomer extends ViewRecord
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
                 ->requiresConfirmation()
-                ->modalHeading('Approve PO Customer')
-                ->modalDescription('Apakah Anda yakin ingin menyetujui PO ini?')
-                ->visible(fn (): bool => $this->record->status_po === PoStatus::PENDING->value) // Fix: gunakan enum
+                ->modalHeading('Approve Customer PO')
+                ->modalDescription('Are you sure you want to approve this PO?')
+                ->visible(fn (): bool => $this->record->status_po === PoStatus::PENDING->value)
                 ->action(function () {
-                    $this->record->update(['status_po' => PoStatus::APPROVED->value]); // Fix: gunakan enum
+                    $this->record->update(['status_po' => PoStatus::APPROVED->value]);
                     \Filament\Notifications\Notification::make()
-                        ->title('PO berhasil disetujui')
+                        ->title('PO approved successfully')
                         ->success()
                         ->send();
                 }),
@@ -46,13 +46,13 @@ class ViewPoCustomer extends ViewRecord
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
                 ->requiresConfirmation()
-                ->modalHeading('Reject PO Customer')
-                ->modalDescription('Apakah Anda yakin ingin menolak PO ini?')
-                ->visible(fn (): bool => $this->record->status_po === PoStatus::PENDING->value) // Fix: gunakan enum
+                ->modalHeading('Reject Customer PO')
+                ->modalDescription('Are you sure you want to reject this PO?')
+                ->visible(fn (): bool => $this->record->status_po === PoStatus::PENDING->value)
                 ->action(function () {
-                    $this->record->update(['status_po' => PoStatus::REJECTED->value]); // Fix: gunakan enum
+                    $this->record->update(['status_po' => PoStatus::REJECTED->value]);
                     \Filament\Notifications\Notification::make()
-                        ->title('PO berhasil ditolak')
+                        ->title('PO rejected successfully')
                         ->success()
                         ->send();
                 }),
@@ -63,22 +63,22 @@ class ViewPoCustomer extends ViewRecord
     {
         return $infolist
             ->schema([
-                Section::make('Informasi PO')
+                Section::make('PO Information')
                     ->schema([
                         Grid::make(2)
                             ->schema([
                                 TextEntry::make('nomor_po')
-                                    ->label('Nomor PO'),
+                                    ->label('PO Number'),
 
                                 TextEntry::make('customer.nama')
                                     ->label('Customer'),
 
                                 TextEntry::make('tanggal_po')
-                                    ->label('Tanggal PO')
+                                    ->label('PO Date')
                                     ->date(),
 
                                 TextEntry::make('jenis_po')
-                                    ->label('Jenis PO')
+                                    ->label('PO Type')
                                     ->badge()
                                     ->color('info'),
 
@@ -86,38 +86,38 @@ class ViewPoCustomer extends ViewRecord
                                     ->label('Status')
                                     ->badge()
                                     ->formatStateUsing(function ($state): string {
-        if ($state instanceof \App\Enums\PoStatus) {
-            return $state->getLabel();
-        }
-        return PoStatus::from($state)->getLabel();
-    })
-    ->color(function ($state): string {
-        if ($state instanceof \App\Enums\PoStatus) {
-            return $state->getColor();
-        }
-        return PoStatus::from($state)->getColor();
-    }),
+                                        if ($state instanceof \App\Enums\PoStatus) {
+                                            return $state->getLabel();
+                                        }
+                                        return PoStatus::from($state)->getLabel();
+                                    })
+                                    ->color(function ($state): string {
+                                        if ($state instanceof \App\Enums\PoStatus) {
+                                            return $state->getColor();
+                                        }
+                                        return PoStatus::from($state)->getColor();
+                                    }),
 
                                 TextEntry::make('user.name')
-                                    ->label('Dibuat Oleh'),
+                                    ->label('Created By'),
                             ]),
                     ]),
 
-                Section::make('Detail Item')
+                Section::make('Item Details')
                     ->schema([
                         RepeatableEntry::make('details')
                             ->schema([
                                 TextEntry::make('deskripsi')
-                                    ->label('Deskripsi')
+                                    ->label('Description')
                                     ->columnSpanFull(),
 
                                 Grid::make(3)
                                     ->schema([
                                         TextEntry::make('jumlah')
-                                            ->label('Jumlah'),
+                                            ->label('Quantity'),
 
                                         TextEntry::make('harga_satuan')
-                                            ->label('Harga Satuan')
+                                            ->label('Unit Price')
                                             ->money('IDR'),
 
                                         TextEntry::make('total')
@@ -129,22 +129,22 @@ class ViewPoCustomer extends ViewRecord
                             ->columns(1),
                     ]),
 
-                Section::make('Total & Pajak')
+                Section::make('Total & Tax')
                     ->schema([
                         Grid::make(3)
                             ->schema([
                                 TextEntry::make('total_sebelum_pajak')
-                                    ->label('Total Sebelum Pajak')
+                                    ->label('Subtotal')
                                     ->money('IDR')
                                     ->size('lg'),
 
                                 TextEntry::make('total_pajak')
-                                    ->label('Pajak (11%)')
+                                    ->label('Tax (11%)')
                                     ->money('IDR')
                                     ->size('lg'),
 
                                 TextEntry::make('total')
-                                    ->label('Total Keseluruhan')
+                                    ->label('Grand Total')
                                     ->money('IDR')
                                     ->size('xl')
                                     ->weight('bold')

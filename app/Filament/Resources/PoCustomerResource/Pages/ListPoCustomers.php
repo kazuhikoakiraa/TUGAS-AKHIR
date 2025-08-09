@@ -18,8 +18,8 @@ class ListPoCustomers extends ListRecords
     {
         return [
             Actions\CreateAction::make()
-                ->label('New PO Customer')
-                ->icon('heroicon-o-plus')
+                ->label('New Customer PO')
+                ->icon('heroicon-o-plus-circle')
                 ->color('primary'),
         ];
     }
@@ -27,7 +27,7 @@ class ListPoCustomers extends ListRecords
     public function getTabs(): array
     {
         return [
-            'all' => Tab::make('Semua')
+            'all' => Tab::make('All')
                 ->badge($this->getTabCount())
                 ->badgeColor('primary'),
 

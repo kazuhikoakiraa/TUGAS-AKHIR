@@ -11,7 +11,7 @@ class CreatePoCustomer extends CreateRecord
 {
     protected static string $resource = PoCustomerResource::class;
 
-    protected static ?string $title = 'Tambah Purchase Order Customer';
+    protected static ?string $title = 'Create Customer Purchase Order';
 
     protected function getRedirectUrl(): string
     {
@@ -20,15 +20,15 @@ class CreatePoCustomer extends CreateRecord
 
     protected function getCreatedNotificationTitle(): ?string
     {
-        return 'PO Customer berhasil dibuat';
+        return 'Customer PO created successfully';
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // Set user yang membuat PO
+        // Set the user who created the PO
         $data['id_user'] = \Illuminate\Support\Facades\Auth::check() ? \Illuminate\Support\Facades\Auth::id() : null;
 
-        // Hitung total dari detail items
+        // Calculate total from detail items
         $totalSebelumPajak = 0;
         if (isset($data['details'])) {
             foreach ($data['details'] as &$detail) {
@@ -37,9 +37,9 @@ class CreatePoCustomer extends CreateRecord
             }
         }
 
-        // Set total sebelum pajak dan pajak
+        // Set subtotal and tax
         $data['total_sebelum_pajak'] = $totalSebelumPajak;
-        $data['total_pajak'] = $totalSebelumPajak * 0.11; // 11% pajak
+        $data['total_pajak'] = $totalSebelumPajak * 0.11; // 11% tax
 
         return $data;
     }

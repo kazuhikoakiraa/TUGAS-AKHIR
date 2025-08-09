@@ -31,7 +31,7 @@ class PoSupplier extends Model
         'tanggal_po' => 'date',
         'total_sebelum_pajak' => 'decimal:2',
         'total_pajak' => 'decimal:2',
-        // 'status_po' => PoStatus::class,
+        'status_po' => PoStatus::class,
     ];
 
     // FIXED: Method name lowercase
@@ -51,15 +51,15 @@ class PoSupplier extends Model
         return $this->hasMany(PoSupplierDetail::class, 'id_po_supplier');
     }
 
-    // public function suratJalan(): HasOne
-    // {
-    //     return $this->hasOne(SuratJalan::class, 'id_po_supplier');
-    // }
+    public function suratJalan(): HasOne
+    {
+        return $this->hasOne(SuratJalan::class, 'id_po_supplier');
+    }
 
-    // public function invoice(): HasOne
-    // {
-    //     return $this->hasOne(Invoice::class, 'id_po_supplier');
-    // }
+    public function invoice(): HasOne
+    {
+        return $this->hasOne(Invoice::class, 'id_po_supplier');
+    }
 
     public function getTotalAttribute()
     {

@@ -39,13 +39,13 @@ class PoSupplierResource extends Resource
     {
         $pendingCount = static::getModel()::where('status_po', PoStatus::PENDING->value)->count();
 
-        return $pendingCount > 0 ? (string) $pendingCount : null;
+        return $pendingCount >= 0 ? (string) $pendingCount : null;
     }
 
     // Method untuk mengatur warna badge
     public static function getNavigationBadgeColor(): ?string
     {
-        return 'warning'; // Bisa juga 'danger', 'success', 'info', dll
+        return 'primary'; // Bisa juga 'danger', 'success', 'info', dll
     }
 
     public static function form(Form $form): Form

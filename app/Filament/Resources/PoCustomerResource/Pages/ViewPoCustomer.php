@@ -56,13 +56,6 @@ class ViewPoCustomer extends ViewRecord
                         ->success()
                         ->send();
                 }),
-
-            Actions\Action::make('print')
-                ->label('Print PO')
-                ->icon('heroicon-o-printer')
-                ->color('gray')
-                ->url(fn (): string => route('po-customer.print', $this->record))
-                ->openUrlInNewTab(),
         ];
     }
 

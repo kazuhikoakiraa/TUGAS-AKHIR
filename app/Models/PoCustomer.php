@@ -30,7 +30,7 @@ class PoCustomer extends Model
         'tanggal_po' => 'date',
         'total_sebelum_pajak' => 'decimal:2',
         'total_pajak' => 'decimal:2',
-        // 'status_po' => PoStatus::class, // TAMBAHKAN INI - Cast enum
+        'status_po' => PoStatus::class, // TAMBAHKAN INI - Cast enum
     ];
 
     public function customer(): BelongsTo
@@ -53,10 +53,10 @@ class PoCustomer extends Model
         return $this->hasOne(SuratJalan::class, 'id_po_customer');
     }
 
-    // public function invoice(): HasOne
-    // {
-    //     return $this->hasOne(Invoice::class, 'id_po_customer');
-    // }
+    public function invoice(): HasOne
+    {
+        return $this->hasOne(Invoice::class, 'id_po_customer');
+    }
 
     public function getTotalAttribute()
     {

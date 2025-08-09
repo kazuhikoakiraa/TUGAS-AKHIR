@@ -26,7 +26,7 @@ class CustomerResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Customers';
 
-    protected static ?string $navigationGroup = 'Data Master';
+    protected static ?string $navigationGroup = 'Master Data';
 
     protected static ?int $navigationSort = 2;
 
@@ -34,29 +34,29 @@ class CustomerResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Informasi Customer')
-                    ->description('Masukkan informasi lengkap customer')
+                Forms\Components\Section::make('Customer Information')
+                    ->description('Enter complete customer information')
                     ->schema([
                         Forms\Components\TextInput::make('nama')
-                            ->label('Nama Customer')
+                            ->label('Customer Name')
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('Masukkan nama customer')
+                            ->placeholder('Enter customer name')
                             ->columnSpanFull(),
 
                         Forms\Components\Textarea::make('alamat')
-                            ->label('Alamat')
+                            ->label('Address')
                             ->required()
                             ->rows(3)
-                            ->placeholder('Masukkan alamat lengkap customer')
+                            ->placeholder('Enter complete customer address')
                             ->columnSpanFull(),
 
                         Forms\Components\TextInput::make('telepon')
-                            ->label('Nomor Telepon')
+                            ->label('Phone Number')
                             ->required()
                             ->tel()
                             ->maxLength(255)
-                            ->placeholder('Contoh: 08123456789')
+                            ->placeholder('Example: 08123456789')
                             ->prefixIcon('heroicon-m-phone'),
 
                         Forms\Components\TextInput::make('email')
@@ -78,14 +78,14 @@ class CustomerResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('nama')
-                    ->label('Nama Customer')
+                    ->label('Customer Name')
                     ->searchable()
                     ->sortable()
                     ->weight('medium')
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('alamat')
-                    ->label('Alamat')
+                    ->label('Address')
                     ->searchable()
                     ->limit(50)
                     ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
@@ -97,12 +97,12 @@ class CustomerResource extends Resource
                     }),
 
                 Tables\Columns\TextColumn::make('telepon')
-                    ->label('Telepon')
+                    ->label('Phone')
                     ->searchable()
                     ->sortable()
                     ->icon('heroicon-m-phone')
                     ->copyable()
-                    ->copyMessage('Nomor telepon berhasil disalin')
+                    ->copyMessage('Phone number copied successfully')
                     ->copyMessageDuration(1500),
 
                 Tables\Columns\TextColumn::make('email')
@@ -111,7 +111,7 @@ class CustomerResource extends Resource
                     ->sortable()
                     ->icon('heroicon-m-envelope')
                     ->copyable()
-                    ->copyMessage('Email berhasil disalin')
+                    ->copyMessage('Email copied successfully')
                     ->copyMessageDuration(1500),
 
                 Tables\Columns\TextColumn::make('po_customers_count')
@@ -122,20 +122,20 @@ class CustomerResource extends Resource
                     ->color('info'),
 
                 Tables\Columns\TextColumn::make('penawaran_count')
-                    ->label('Total Penawaran')
+                    ->label('Total Quotations')
                     ->counts('penawaran')
                     ->sortable()
                     ->badge()
                     ->color('success'),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Dibuat')
+                    ->label('Created')
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Diperbarui')
+                    ->label('Updated')
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -144,9 +144,9 @@ class CustomerResource extends Resource
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         Forms\Components\DatePicker::make('created_from')
-                            ->label('Dibuat dari'),
+                            ->label('Created from'),
                         Forms\Components\DatePicker::make('created_until')
-                            ->label('Dibuat sampai'),
+                            ->label('Created until'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -160,7 +160,7 @@ class CustomerResource extends Resource
                             );
                     }),
                     Tables\Filters\Filter::make('has_orders')
-                    ->label('Memiliki Purchase Order')
+                    ->label('Has Purchase Orders')
                     ->query(fn (Builder $query): Builder => $query->has('poCustomers'))
                     ->toggle(),
             ])
@@ -171,21 +171,21 @@ class CustomerResource extends Resource
                     ->color('warning'),
                 Tables\Actions\DeleteAction::make()
                     ->requiresConfirmation()
-                    ->modalHeading('Hapus Customer')
-                    ->modalDescription('Apakah Anda yakin ingin menghapus customer ini? Data yang sudah dihapus tidak dapat dikembalikan.')
-                    ->modalSubmitActionLabel('Ya, Hapus'),
+                    ->modalHeading('Delete Customer')
+                    ->modalDescription('Are you sure you want to delete this customer? This action cannot be undone.')
+                    ->modalSubmitActionLabel('Yes, Delete'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
                         ->requiresConfirmation()
-                        ->modalHeading('Hapus Customer Terpilih')
-                        ->modalDescription('Apakah Anda yakin ingin menghapus semua customer yang dipilih? Data yang sudah dihapus tidak dapat dikembalikan.')
-                        ->modalSubmitActionLabel('Ya, Hapus Semua'),
+                        ->modalHeading('Delete Selected Customers')
+                        ->modalDescription('Are you sure you want to delete all selected customers? This action cannot be undone.')
+                        ->modalSubmitActionLabel('Yes, Delete All'),
                 ]),
             ])
-            ->emptyStateHeading('Belum ada customer')
-            ->emptyStateDescription('Hasil pencarian tidak ditemukan.')
+            ->emptyStateHeading('No customers yet')
+            ->emptyStateDescription('Search results not found.')
             ->emptyStateIcon('heroicon-o-user-group');
     }
 
@@ -193,19 +193,19 @@ class CustomerResource extends Resource
     {
         return $infolist
             ->schema([
-                Infolists\Components\Section::make('Detail Customer')
+                Infolists\Components\Section::make('Customer Details')
                     ->schema([
                         Infolists\Components\TextEntry::make('nama')
-                            ->label('Nama Customer')
+                            ->label('Customer Name')
                             ->weight('bold')
                             ->size('lg'),
 
                         Infolists\Components\TextEntry::make('alamat')
-                            ->label('Alamat')
+                            ->label('Address')
                             ->columnSpanFull(),
 
                         Infolists\Components\TextEntry::make('telepon')
-                            ->label('Nomor Telepon')
+                            ->label('Phone Number')
                             ->icon('heroicon-m-phone')
                             ->copyable(),
 
@@ -216,24 +216,24 @@ class CustomerResource extends Resource
                     ])
                     ->columns(2),
 
-                Infolists\Components\Section::make('Statistik')
+                Infolists\Components\Section::make('Statistics')
                     ->schema([
                         Infolists\Components\TextEntry::make('po_customers_count')
-                            ->label('Total Purchase Order')
+                            ->label('Total Purchase Orders')
                             ->badge()
                             ->color('info'),
 
                         Infolists\Components\TextEntry::make('penawaran_count')
-                            ->label('Total Penawaran')
+                            ->label('Total Quotations')
                             ->badge()
                             ->color('success'),
 
                         Infolists\Components\TextEntry::make('created_at')
-                            ->label('Tanggal Pendaftaran')
+                            ->label('Registration Date')
                             ->dateTime('d F Y, H:i'),
 
                         Infolists\Components\TextEntry::make('updated_at')
-                            ->label('Terakhir Diperbarui')
+                            ->label('Last Updated')
                             ->dateTime('d F Y, H:i'),
                     ])
                     ->columns(2),

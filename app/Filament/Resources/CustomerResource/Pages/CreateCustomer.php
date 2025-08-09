@@ -19,18 +19,19 @@ class CreateCustomer extends CreateRecord
     {
         return Notification::make()
             ->success()
-            ->title('Customer berhasil ditambahkan')
-            ->body('Data customer telah berhasil disimpan ke sistem.');
+            ->title('Customer created successfully')
+            ->body('Customer data has been successfully saved to the system.');
     }
+
     protected function getFormActions(): array
     {
         return [
             $this->getCreateFormAction()
-                ->label('Simpan Customer'),
+                ->label('Save Customer'),
             $this->getCreateAnotherFormAction()
-                ->label('Simpan & Tambah Lagi'),
+                ->label('Save & Create Another'),
             $this->getCancelFormAction()
-                ->label('Batal'),
+                ->label('Cancel'),
         ];
     }
 }

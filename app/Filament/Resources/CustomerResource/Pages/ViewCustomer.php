@@ -17,9 +17,9 @@ class ViewCustomer extends ViewRecord
                 ->color('warning'),
             Actions\DeleteAction::make()
                 ->requiresConfirmation()
-                ->modalHeading('Hapus Customer')
-                ->modalDescription('Apakah Anda yakin ingin menghapus customer ini? Data yang sudah dihapus tidak dapat dikembalikan.')
-                ->modalSubmitActionLabel('Ya, Hapus'),
+                ->modalHeading('Delete Customer')
+                ->modalDescription('Are you sure you want to delete this customer? This action cannot be undone.')
+                ->modalSubmitActionLabel('Yes, Delete'),
         ];
     }
 }

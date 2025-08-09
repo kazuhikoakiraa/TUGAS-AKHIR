@@ -16,7 +16,7 @@ class ListCustomers extends ListRecords
     {
         return [
             Actions\CreateAction::make()
-                ->label('Tambah Customer')
+                ->label('Add Customer')
                 ->icon('heroicon-o-plus'),
         ];
     }
@@ -24,14 +24,14 @@ class ListCustomers extends ListRecords
     public function getTabs(): array
     {
         return [
-            'all' => Tab::make('Semua Customer')
+            'all' => Tab::make('All Customers')
                 ->badge(fn () => $this->getModel()::count()),
 
-            'recent' => Tab::make('Terbaru')
+            'recent' => Tab::make('Recent')
                 ->badge(fn () => $this->getModel()::where('created_at', '>=', now()->subDays())->count())
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('created_at', '>=', now()->subDays())),
 
-            'active' => Tab::make('Aktif')
+            'active' => Tab::make('Active')
                 ->badge(fn () => $this->getModel()::whereHas('poCustomers')->count())
                 ->modifyQueryUsing(fn (Builder $query) => $query->whereHas('poCustomers')),
         ];

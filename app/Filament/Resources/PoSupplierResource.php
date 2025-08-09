@@ -24,17 +24,17 @@ class PoSupplierResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-truck';
 
-       protected static ?string $navigationLabel = 'PO Supplier';
+    protected static ?string $navigationLabel = 'Supplier PO';
 
-    protected static ?string $modelLabel = 'PO Supplier';
+    protected static ?string $modelLabel = 'Supplier PO';
 
-    protected static ?string $pluralModelLabel = 'PO Suppliers';
+    protected static ?string $pluralModelLabel = 'Supplier POs';
 
     protected static ?string $navigationGroup = 'Purchase Order';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
 
-    // Method untuk menampilkan badge notifikasi di sidebar
+    // Method to display notification badge in sidebar
     public static function getNavigationBadge(): ?string
     {
         $pendingCount = static::getModel()::where('status_po', PoStatus::PENDING->value)->count();
@@ -42,23 +42,23 @@ class PoSupplierResource extends Resource
         return $pendingCount >= 0 ? (string) $pendingCount : null;
     }
 
-    // Method untuk mengatur warna badge
+    // Method to set badge color
     public static function getNavigationBadgeColor(): ?string
     {
-        return 'primary'; // Bisa juga 'danger', 'success', 'info', dll
+        return 'primary'; // Can also be 'danger', 'success', 'info', etc.
     }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Section::make('Informasi PO')
+                Section::make('PO Information')
                     ->schema([
                         Forms\Components\TextInput::make('nomor_po')
-                            ->label('Nomor PO')
+                            ->label('PO Number')
                             ->disabled()
                             ->dehydrated(false)
-                            ->placeholder('Akan di-generate otomatis'),
+                            ->placeholder('Will be generated automatically'),
 
                         Forms\Components\Select::make('id_supplier')
                             ->label('Supplier')
@@ -72,20 +72,20 @@ class PoSupplierResource extends Resource
                             ->default(optional(\Illuminate\Support\Facades\Auth::user())->id),
 
                         Forms\Components\DatePicker::make('tanggal_po')
-                            ->label('Tanggal PO')
+                            ->label('PO Date')
                             ->required()
                             ->default(now()),
 
                         Forms\Components\Select::make('jenis_po')
-                            ->label('Jenis PO')
+                            ->label('PO Type')
                             ->options([
-                              'Produk' => 'Produk',
+                                'Product' => 'Product',
                             ])
                             ->required()
                             ->native(false),
 
                         Forms\Components\Select::make('status_po')
-                            ->label('Status PO')
+                            ->label('PO Status')
                             ->options(PoStatus::getOptions())
                             ->default(PoStatus::DRAFT->value)
                             ->required()
@@ -93,20 +93,20 @@ class PoSupplierResource extends Resource
                     ])
                     ->columns(2),
 
-                Section::make('Detail Item')
+                Section::make('Item Details')
                     ->schema([
                         Repeater::make('details')
                             ->relationship('details')
                             ->rules(['required', new \App\Rules\ValidPoDetails()])
                             ->schema([
                                 Forms\Components\Textarea::make('deskripsi')
-                                    ->label('Deskripsi Barang')
+                                    ->label('Product Description')
                                     ->required()
                                     ->rows(2)
                                     ->columnSpanFull(),
 
                                 Forms\Components\TextInput::make('jumlah')
-                                    ->label('Jumlah/Qty')
+                                    ->label('Quantity')
                                     ->numeric()
                                     ->required()
                                     ->default(1)
@@ -119,7 +119,7 @@ class PoSupplierResource extends Resource
                                     }),
 
                                 Forms\Components\TextInput::make('harga_satuan')
-                                    ->label('Harga Satuan')
+                                    ->label('Unit Price')
                                     ->numeric()
                                     ->required()
                                     ->prefix('Rp')
@@ -138,7 +138,7 @@ class PoSupplierResource extends Resource
                                     ->dehydrated(),
                             ])
                             ->columns(3)
-                            ->addActionLabel('Tambah Item')
+                            ->addActionLabel('Add Item')
                             ->reorderableWithButtons()
                             ->collapsible()
                             ->itemLabel(fn (array $state): ?string => $state['deskripsi'] ?? null)
@@ -146,30 +146,29 @@ class PoSupplierResource extends Resource
                             ->afterStateUpdated(function (Get $get, Set $set) {
                                 self::updateTotals($get, $set);
                             })
-
                             ->deleteAction(
                                 fn (Forms\Components\Actions\Action $action) => $action->after(fn (Get $get, Set $set) => self::updateTotals($get, $set))
                             ),
                     ]),
 
-                Section::make('Total & Pajak')
+                Section::make('Total & Tax')
                     ->schema([
                         Forms\Components\TextInput::make('total_sebelum_pajak')
-                            ->label('Total Sebelum Pajak')
+                            ->label('Subtotal')
                             ->numeric()
                             ->prefix('Rp')
                             ->disabled()
                             ->dehydrated(),
 
                         Forms\Components\TextInput::make('total_pajak')
-                            ->label('Pajak (11%)')
+                            ->label('Tax (11%)')
                             ->numeric()
                             ->prefix('Rp')
                             ->disabled()
                             ->dehydrated(),
 
                         Forms\Components\Placeholder::make('total_keseluruhan')
-                            ->label('Total Keseluruhan')
+                            ->label('Grand Total')
                             ->content(function (Get $get): string {
                                 $totalSebelumPajak = (float) $get('total_sebelum_pajak') ?? 0;
                                 $totalPajak = (float) $get('total_pajak') ?? 0;
@@ -185,7 +184,7 @@ class PoSupplierResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('nomor_po')
-                    ->label('Nomor PO')
+                    ->label('PO Number')
                     ->searchable()
                     ->sortable(),
 
@@ -195,12 +194,12 @@ class PoSupplierResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('tanggal_po')
-                    ->label('Tanggal PO')
+                    ->label('PO Date')
                     ->date()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('jenis_po')
-                    ->label('Jenis PO')
+                    ->label('PO Type')
                     ->badge()
                     ->color('info'),
 
@@ -229,7 +228,7 @@ class PoSupplierResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Dibuat')
+                    ->label('Created At')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -238,7 +237,6 @@ class PoSupplierResource extends Resource
                 Tables\Filters\SelectFilter::make('status_po')
                     ->label('Status')
                     ->options(PoStatus::getOptions()),
-
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -250,12 +248,12 @@ class PoSupplierResource extends Resource
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->modalHeading('Approve PO Supplier')
-                    ->modalDescription('Apakah Anda yakin ingin menyetujui PO ini?')
+                    ->modalHeading('Approve Supplier PO')
+                    ->modalDescription('Are you sure you want to approve this PO?')
                     ->visible(fn (PoSupplier $record): bool => $record->isPending())
                     ->action(fn (PoSupplier $record) => $record->update(['status_po' => PoStatus::APPROVED->value]))
                     ->after(fn () => \Filament\Notifications\Notification::make()
-                        ->title('PO berhasil disetujui')
+                        ->title('PO approved successfully')
                         ->success()
                         ->send()),
 
@@ -264,12 +262,12 @@ class PoSupplierResource extends Resource
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->modalHeading('Reject PO Supplier')
-                    ->modalDescription('Apakah Anda yakin ingin menolak PO ini?')
+                    ->modalHeading('Reject Supplier PO')
+                    ->modalDescription('Are you sure you want to reject this PO?')
                     ->visible(fn (PoSupplier $record): bool => $record->isPending())
                     ->action(fn (PoSupplier $record) => $record->update(['status_po' => PoStatus::REJECTED->value]))
                     ->after(fn () => \Filament\Notifications\Notification::make()
-                        ->title('PO berhasil ditolak')
+                        ->title('PO rejected successfully')
                         ->success()
                         ->send()),
 
@@ -310,7 +308,7 @@ class PoSupplierResource extends Resource
             $subtotal += (float) ($detail['total'] ?? 0);
         }
 
-        $pajak = $subtotal * 0.11; // 11% pajak
+        $pajak = $subtotal * 0.11; // 11% tax
 
         $set('total_sebelum_pajak', $subtotal);
         $set('total_pajak', $pajak);

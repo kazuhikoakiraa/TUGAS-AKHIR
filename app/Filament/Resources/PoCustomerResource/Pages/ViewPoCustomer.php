@@ -12,6 +12,7 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Pages\ViewRecord;
+use Illuminate\Support\Facades\DB;
 
 class ViewPoCustomer extends ViewRecord
 {
@@ -57,6 +58,20 @@ class ViewPoCustomer extends ViewRecord
                         ->send();
                 }),
         ];
+    }
+
+    /**
+     * Recalculate total sebelum update status
+     */
+    private function recalculateTotal(): void
+    {
+        $totalSebelumPajak = $this->record->details()->sum(DB::raw('jumlah * harga_satuan'));
+        $totalPajak = $totalSebelumPajak * 0.11;
+
+        $this->record->update([
+            'total_sebelum_pajak' => $totalSebelumPajak,
+            'total_pajak' => $totalPajak,
+        ]);
     }
 
     public function infolist(Infolist $infolist): Infolist

@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class PoCustomer extends Model
 {
@@ -81,6 +83,28 @@ class PoCustomer extends Model
             }
         });
     }
+
+     // Accessor untuk total keseluruhan
+    protected function total(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->total_sebelum_pajak + $this->total_pajak,
+        );
+    }
+
+    // Event untuk recalculate total saat model di-save
+    protected static function booted()
+    {
+        static::saving(function ($poSupplier) {
+            // Hitung ulang total dari details jika ada
+            if ($poSupplier->exists) {
+                $totalSebelumPajak = $poSupplier->details()->sum(DB::raw('jumlah * harga_satuan'));
+                $poSupplier->total_sebelum_pajak = $totalSebelumPajak;
+                $poSupplier->total_pajak = $totalSebelumPajak * 0.11;
+            }
+        });
+    }
+
 
     public static function generateNomorPo(): string
     {

@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Enums\PoStatus;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Supplier;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class PoSupplier extends Model
 {
@@ -43,6 +46,27 @@ class PoSupplier extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'id_user');
+    }
+
+     // Accessor untuk total keseluruhan
+    protected function total(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->total_sebelum_pajak + $this->total_pajak,
+        );
+    }
+
+    // Event untuk recalculate total saat model di-save
+    protected static function booted()
+    {
+        static::saving(function ($poSupplier) {
+            // Hitung ulang total dari details jika ada
+            if ($poSupplier->exists) {
+                $totalSebelumPajak = $poSupplier->details()->sum(DB::raw('jumlah * harga_satuan'));
+                $poSupplier->total_sebelum_pajak = $totalSebelumPajak;
+                $poSupplier->total_pajak = $totalSebelumPajak * 0.11;
+            }
+        });
     }
 
     // FIXED: Foreign key konsisten

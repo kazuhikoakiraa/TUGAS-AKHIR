@@ -43,10 +43,10 @@ class PoCustomer extends Model
         return $this->belongsTo(User::class, 'id_user');
     }
 
-    // public function details(): HasMany
-    // {
-    //     return $this->hasMany(PoCustomerDetail::class, 'id_po_customer');
-    // }
+    public function details(): HasMany
+    {
+        return $this->hasMany(PoCustomerDetail::class, 'id_po_customer');
+    }
 
     // public function suratJalan(): HasOne
     // {
@@ -129,36 +129,36 @@ class PoCustomer extends Model
     }
 
     // PERBAIKAN: Gunakan enum untuk comparison
-    // public function canBeEdited(): bool
-    // {
-    //     return in_array($this->status_po, [PoStatus::DRAFT, PoStatus::PENDING]);
-    // }
+    public function canBeEdited(): bool
+    {
+        return in_array($this->status_po, [PoStatus::DRAFT, PoStatus::PENDING]);
+    }
 
-    // public function canBeDeleted(): bool
-    // {
-    //     return $this->status_po === PoStatus::DRAFT;
-    // }
+    public function canBeDeleted(): bool
+    {
+        return $this->status_po === PoStatus::DRAFT;
+    }
 
-    // // TAMBAHAN: Helper methods untuk status
-    // public function isDraft(): bool
-    // {
-    //     return $this->status_po === PoStatus::DRAFT;
-    // }
+    // TAMBAHAN: Helper methods untuk status
+    public function isDraft(): bool
+    {
+        return $this->status_po === PoStatus::DRAFT;
+    }
 
-    // public function isPending(): bool
-    // {
-    //     return $this->status_po === PoStatus::PENDING;
-    // }
+    public function isPending(): bool
+    {
+        return $this->status_po === PoStatus::PENDING;
+    }
 
-    // public function isApproved(): bool
-    // {
-    //     return $this->status_po === PoStatus::APPROVED;
-    // }
+    public function isApproved(): bool
+    {
+        return $this->status_po === PoStatus::APPROVED;
+    }
 
-    // public function isRejected(): bool
-    // {
-    //     return $this->status_po === PoStatus::REJECTED;
-    // }
+    public function isRejected(): bool
+    {
+        return $this->status_po === PoStatus::REJECTED;
+    }
 
 
 /**

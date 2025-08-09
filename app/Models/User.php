@@ -101,20 +101,20 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     // Relations
-    // public function penawaran(): HasMany
-    // {
-    //     return $this->hasMany(Penawaran::class, 'id_user');
-    // }
+    public function penawaran(): HasMany
+    {
+        return $this->hasMany(Penawaran::class, 'id_user');
+    }
 
-    // public function poCustomers(): HasMany
-    // {
-    //     return $this->hasMany(PoCustomer::class, 'id_user');
-    // }
+    public function poCustomers(): HasMany
+    {
+        return $this->hasMany(PoCustomer::class, 'id_user');
+    }
 
-    // public function poSuppliers(): HasMany
-    // {
-    //     return $this->hasMany(PoSupplier::class, 'id_user');
-    // }
+    public function poSuppliers(): HasMany
+    {
+        return $this->hasMany(PoSupplier::class, 'id_user');
+    }
 
     // public function suratJalan(): HasMany
     // {

@@ -60,6 +60,7 @@ class PoCustomer extends Model
         return $this->hasOne(Invoice::class, 'id_po_customer');
     }
 
+
     public function getTotalAttribute()
     {
         return $this->total_sebelum_pajak + $this->total_pajak;
@@ -192,4 +193,21 @@ public function hasSuratJalan(): bool
 {
     return $this->suratJalan()->exists();
 }
+
+
+    /**
+     * Check if this PO has invoice.
+     */
+    public function hasInvoice(): bool
+    {
+        return $this->invoice()->exists();
+    }
+
+    /**
+     * Check if PO can generate invoice
+     */
+    public function canGenerateInvoice(): bool
+    {
+        return $this->status_po === PoStatus::APPROVED && !$this->hasInvoice();
+    }
 }

@@ -37,4 +37,12 @@ class RekeningBank extends Model
     {
         return BankHelper::getShortBankName($this->nama_bank);
     }
+
+    /**
+     * Relationship with Invoice
+     */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class, 'id_rekening_bank');
+    }
 }

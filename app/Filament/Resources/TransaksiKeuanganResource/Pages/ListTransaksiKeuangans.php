@@ -19,7 +19,7 @@ class ListTransaksiKeuangan extends ListRecords
     {
         return [
             Actions\CreateAction::make()
-                ->label('Tambah Transaksi')
+                ->label('Add Transaction')
                 ->icon('heroicon-o-plus'),
         ];
     }
@@ -27,35 +27,35 @@ class ListTransaksiKeuangan extends ListRecords
     public function getTabs(): array
     {
         return [
-            'semua' => Tab::make('Semua Transaksi')
+            'all' => Tab::make('All Transactions')
                 ->icon('heroicon-o-list-bullet')
                 ->badge(TransaksiKeuangan::count()),
 
-            'pemasukan' => Tab::make('Pemasukan')
+            'income' => Tab::make('Income')
                 ->icon('heroicon-o-arrow-trending-up')
                 ->iconPosition(IconPosition::Before)
                 ->modifyQueryUsing(fn (Builder $query) => $query->pemasukan())
                 ->badge(TransaksiKeuangan::pemasukan()->count())
                 ->badgeColor('success'),
 
-            'pengeluaran' => Tab::make('Pengeluaran')
+            'expense' => Tab::make('Expense')
                 ->icon('heroicon-o-arrow-trending-down')
                 ->iconPosition(IconPosition::Before)
                 ->modifyQueryUsing(fn (Builder $query) => $query->pengeluaran())
                 ->badge(TransaksiKeuangan::pengeluaran()->count())
                 ->badgeColor('danger'),
 
-            'minggu_ini' => Tab::make('Minggu Ini')
+            'this_week' => Tab::make('This Week')
                 ->icon('heroicon-o-calendar-days')
                 ->modifyQueryUsing(fn (Builder $query) => $query->mingguIni())
                 ->badge(TransaksiKeuangan::mingguIni()->count()),
 
-            'bulan_ini' => Tab::make('Bulan Ini')
+            'this_month' => Tab::make('This Month')
                 ->icon('heroicon-o-calendar')
                 ->modifyQueryUsing(fn (Builder $query) => $query->bulanIni())
                 ->badge(TransaksiKeuangan::bulanIni()->count()),
 
-            'tahun_ini' => Tab::make('Tahun Ini')
+            'this_year' => Tab::make('This Year')
                 ->icon('heroicon-o-calendar')
                 ->modifyQueryUsing(fn (Builder $query) => $query->tahunIni())
                 ->badge(TransaksiKeuangan::tahunIni()->count()),

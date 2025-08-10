@@ -17,14 +17,14 @@ class EditTransaksiKeuangan extends EditRecord
             Actions\ViewAction::make(),
             Actions\DeleteAction::make()
                 ->requiresConfirmation()
-                ->modalHeading('Hapus Transaksi')
-                ->modalDescription('Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.')
-                ->modalSubmitActionLabel('Hapus')
+                ->modalHeading('Delete Transaction')
+                ->modalDescription('Are you sure you want to delete this transaction? This action cannot be undone.')
+                ->modalSubmitActionLabel('Delete')
                 ->successNotification(
                     Notification::make()
                         ->success()
-                        ->title('Transaksi berhasil dihapus')
-                        ->body('Transaksi keuangan telah berhasil dihapus dari sistem.')
+                        ->title('Transaction deleted successfully')
+                        ->body('Financial transaction has been successfully removed from the system.')
                 ),
         ];
     }
@@ -38,19 +38,19 @@ class EditTransaksiKeuangan extends EditRecord
     {
         return Notification::make()
             ->success()
-            ->title('Transaksi berhasil diperbarui')
-            ->body('Transaksi keuangan telah berhasil diperbarui.')
+            ->title('Transaction updated successfully')
+            ->body('Financial transaction has been successfully updated.')
             ->duration(5000);
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Jika jenis pengeluaran dan ada id_po_supplier, hapus invoice_id
+        // If expense type and has id_po_supplier, remove invoice_id
         if ($data['jenis'] === 'pengeluaran') {
             unset($data['invoice_id']);
         }
 
-        // Jika jenis pemasukan dan ada invoice_id, hapus id_po_supplier
+        // If income type and has invoice_id, remove id_po_supplier
         if ($data['jenis'] === 'pemasukan') {
             unset($data['id_po_supplier']);
         }
@@ -62,10 +62,10 @@ class EditTransaksiKeuangan extends EditRecord
     {
         $record = $this->record;
 
-        // Log activity untuk perubahan
+        // Log activity for changes
         activity()
             ->performedOn($record)
             ->causedBy(filament()->auth()->user())
-            ->log("Transaksi {$record->jenis} sebesar Rp " . number_format($record->jumlah, 0, ',', '.') . " berhasil diperbarui");
+            ->log("Transaction {$record->jenis} of Rp " . number_format($record->jumlah, 0, ',', '.') . " successfully updated");
     }
 }

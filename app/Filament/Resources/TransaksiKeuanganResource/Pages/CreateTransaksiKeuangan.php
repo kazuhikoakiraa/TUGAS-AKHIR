@@ -24,19 +24,19 @@ class CreateTransaksiKeuangan extends CreateRecord
     {
         return Notification::make()
             ->success()
-            ->title('Transaksi berhasil dibuat')
-            ->body('Transaksi keuangan telah berhasil dicatat.')
+            ->title('Transaction created successfully')
+            ->body('Financial transaction has been successfully recorded.')
             ->duration(5000);
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // Jika jenis pengeluaran dan ada id_po_supplier, hapus invoice_id
+        // If expense type and has id_po_supplier, remove invoice_id
         if ($data['jenis'] === 'pengeluaran') {
             unset($data['invoice_id']);
         }
 
-        // Jika jenis pemasukan dan ada invoice_id, hapus id_po_supplier
+        // If income type and has invoice_id, remove id_po_supplier
         if ($data['jenis'] === 'pemasukan') {
             unset($data['id_po_supplier']);
         }
@@ -46,12 +46,12 @@ class CreateTransaksiKeuangan extends CreateRecord
 
     protected function afterCreate(): void
     {
-        // Update saldo rekening atau logic tambahan lainnya
+        // Update account balance or other additional logic
         $record = $this->record;
 
-        // Contoh: Log activity atau trigger event lainnya
+        // Example: Log activity or trigger other events
         activity()
             ->causedBy(Auth::user())
-            ->log("Transaksi {$record->jenis} sebesar Rp " . number_format($record->jumlah, 0, ',', '.') . " berhasil dicatat");
+            ->log("Transaction {$record->jenis} of Rp " . number_format($record->jumlah, 0, ',', '.') . " successfully recorded");
     }
 }

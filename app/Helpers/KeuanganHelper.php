@@ -9,9 +9,9 @@ use Illuminate\Support\Collection;
 class KeuanganHelper
 {
     /**
-     * Hitung total pemasukan untuk periode tertentu
+     * Calculate total income for a specific period
      */
-    public static function totalPemasukan(?Carbon $start = null, ?Carbon $end = null): float
+    public static function totalIncome(?Carbon $start = null, ?Carbon $end = null): float
     {
         $query = TransaksiKeuangan::pemasukan();
 
@@ -23,9 +23,9 @@ class KeuanganHelper
     }
 
     /**
-     * Hitung total pengeluaran untuk periode tertentu
+     * Calculate total expenses for a specific period
      */
-    public static function totalPengeluaran(?Carbon $start = null, ?Carbon $end = null): float
+    public static function totalExpenses(?Carbon $start = null, ?Carbon $end = null): float
     {
         $query = TransaksiKeuangan::pengeluaran();
 
@@ -37,67 +37,67 @@ class KeuanganHelper
     }
 
     /**
-     * Hitung keuntungan/rugi untuk periode tertentu
+     * Calculate profit/loss for a specific period
      */
-    public static function keuntungan(?Carbon $start = null, ?Carbon $end = null): float
+    public static function profit(?Carbon $start = null, ?Carbon $end = null): float
     {
-        return self::totalPemasukan($start, $end) - self::totalPengeluaran($start, $end);
+        return self::totalIncome($start, $end) - self::totalExpenses($start, $end);
     }
 
     /**
-     * Hitung saldo kas kumulatif
+     * Calculate cumulative cash balance
      */
-    public static function saldoKas(): float
+    public static function cashBalance(): float
     {
-        return self::keuntungan();
+        return self::profit();
     }
 
     /**
-     * Dapatkan ringkasan keuangan untuk periode tertentu
+     * Get financial summary for a specific period
      */
-    public static function ringkasanKeuangan(?Carbon $start = null, ?Carbon $end = null): array
+    public static function financialSummary(?Carbon $start = null, ?Carbon $end = null): array
     {
-        $pemasukan = self::totalPemasukan($start, $end);
-        $pengeluaran = self::totalPengeluaran($start, $end);
-        $keuntungan = $pemasukan - $pengeluaran;
+        $income = self::totalIncome($start, $end);
+        $expenses = self::totalExpenses($start, $end);
+        $profit = $income - $expenses;
 
         return [
-            'pemasukan' => $pemasukan,
-            'pengeluaran' => $pengeluaran,
-            'keuntungan' => $keuntungan,
-            'persentase_keuntungan' => $pemasukan > 0 ? ($keuntungan / $pemasukan) * 100 : 0,
+            'income' => $income,
+            'expenses' => $expenses,
+            'profit' => $profit,
+            'profit_percentage' => $income > 0 ? ($profit / $income) * 100 : 0,
             'formatted' => [
-                'pemasukan' => 'Rp ' . number_format($pemasukan, 0, ',', '.'),
-                'pengeluaran' => 'Rp ' . number_format($pengeluaran, 0, ',', '.'),
-                'keuntungan' => 'Rp ' . number_format($keuntungan, 0, ',', '.'),
+                'income' => 'Rp ' . number_format($income, 0, ',', '.'),
+                'expenses' => 'Rp ' . number_format($expenses, 0, ',', '.'),
+                'profit' => 'Rp ' . number_format($profit, 0, ',', '.'),
             ]
         ];
     }
 
     /**
-     * Dapatkan tren transaksi harian untuk chart
+     * Get daily transaction trends for charts
      */
-    public static function trendHarian(int $days = 30): array
+    public static function dailyTrends(int $days = 30): array
     {
         $data = [];
 
         for ($i = $days - 1; $i >= 0; $i--) {
             $date = now()->subDays($i);
 
-            $pemasukan = TransaksiKeuangan::pemasukan()
+            $income = TransaksiKeuangan::pemasukan()
                 ->whereDate('tanggal', $date)
                 ->sum('jumlah');
 
-            $pengeluaran = TransaksiKeuangan::pengeluaran()
+            $expenses = TransaksiKeuangan::pengeluaran()
                 ->whereDate('tanggal', $date)
                 ->sum('jumlah');
 
             $data[] = [
-                'tanggal' => $date->format('Y-m-d'),
-                'tanggal_formatted' => $date->format('d/m'),
-                'pemasukan' => (float) $pemasukan,
-                'pengeluaran' => (float) $pengeluaran,
-                'keuntungan' => (float) ($pemasukan - $pengeluaran),
+                'date' => $date->format('Y-m-d'),
+                'date_formatted' => $date->format('d/m'),
+                'income' => (float) $income,
+                'expenses' => (float) $expenses,
+                'profit' => (float) ($income - $expenses),
             ];
         }
 
@@ -105,29 +105,29 @@ class KeuanganHelper
     }
 
     /**
-     * Dapatkan tren bulanan untuk tahun berjalan
+     * Get monthly trends for current year
      */
-    public static function trendBulanan(): array
+    public static function monthlyTrends(): array
     {
         $data = [];
 
         for ($month = 1; $month <= 12; $month++) {
-            $pemasukan = TransaksiKeuangan::pemasukan()
+            $income = TransaksiKeuangan::pemasukan()
                 ->whereMonth('tanggal', $month)
                 ->whereYear('tanggal', now()->year)
                 ->sum('jumlah');
 
-            $pengeluaran = TransaksiKeuangan::pengeluaran()
+            $expenses = TransaksiKeuangan::pengeluaran()
                 ->whereMonth('tanggal', $month)
                 ->whereYear('tanggal', now()->year)
                 ->sum('jumlah');
 
             $data[] = [
-                'bulan' => $month,
-                'bulan_nama' => Carbon::createFromDate(now()->year, $month, 1)->format('M'),
-                'pemasukan' => (float) $pemasukan,
-                'pengeluaran' => (float) $pengeluaran,
-                'keuntungan' => (float) ($pemasukan - $pengeluaran),
+                'month' => $month,
+                'month_name' => Carbon::createFromDate(now()->year, $month, 1)->format('M'),
+                'income' => (float) $income,
+                'expenses' => (float) $expenses,
+                'profit' => (float) ($income - $expenses),
             ];
         }
 
@@ -135,9 +135,9 @@ class KeuanganHelper
     }
 
     /**
-     * Dapatkan breakdown transaksi per rekening
+     * Get transaction breakdown per bank account
      */
-    public static function breakdownPerRekening(?Carbon $start = null, ?Carbon $end = null): Collection
+    public static function breakdownByAccount(?Carbon $start = null, ?Carbon $end = null): Collection
     {
         $query = TransaksiKeuangan::with('rekening');
 
@@ -147,28 +147,28 @@ class KeuanganHelper
 
         return $query->get()
             ->groupBy('id_rekening')
-            ->map(function ($transaksi, $rekeningId) {
-                $rekening = $transaksi->first()->rekening;
-                $pemasukan = $transaksi->where('jenis', 'pemasukan')->sum('jumlah');
-                $pengeluaran = $transaksi->where('jenis', 'pengeluaran')->sum('jumlah');
+            ->map(function ($transactions, $accountId) {
+                $account = $transactions->first()->rekening;
+                $income = $transactions->where('jenis', 'pemasukan')->sum('jumlah');
+                $expenses = $transactions->where('jenis', 'pengeluaran')->sum('jumlah');
 
                 return [
-                    'rekening' => $rekening,
-                    'nama_bank' => $rekening->nama_bank,
-                    'nomor_rekening' => $rekening->nomor_rekening,
-                    'pemasukan' => $pemasukan,
-                    'pengeluaran' => $pengeluaran,
-                    'saldo' => $pemasukan - $pengeluaran,
-                    'jumlah_transaksi' => $transaksi->count(),
+                    'account' => $account,
+                    'bank_name' => $account->nama_bank,
+                    'account_number' => $account->nomor_rekening,
+                    'income' => $income,
+                    'expenses' => $expenses,
+                    'balance' => $income - $expenses,
+                    'transaction_count' => $transactions->count(),
                 ];
             })
             ->values();
     }
 
     /**
-     * Validasi apakah transaksi sudah ada untuk PO atau Invoice
+     * Validate if transaction already exists for PO or Invoice
      */
-    public static function cekTransaksiExists($referenceType, $referenceId): bool
+    public static function checkTransactionExists($referenceType, $referenceId): bool
     {
         if ($referenceType === 'po_supplier') {
             return TransaksiKeuangan::where('id_po_supplier', $referenceId)->exists();
@@ -184,7 +184,7 @@ class KeuanganHelper
     }
 
     /**
-     * Format angka menjadi rupiah
+     * Format number to rupiah
      */
     public static function formatRupiah(float $amount): string
     {
@@ -192,14 +192,14 @@ class KeuanganHelper
     }
 
     /**
-     * Dapatkan persentase perubahan
+     * Get percentage change
      */
-    public static function persentasePerubahan(float $current, float $previous): array
+    public static function percentageChange(float $current, float $previous): array
     {
         if ($previous == 0) {
             return [
                 'percentage' => $current > 0 ? 100 : 0,
-                'direction' => $current > 0 ? 'naik' : 'sama',
+                'direction' => $current > 0 ? 'up' : 'same',
                 'formatted' => $current > 0 ? '+100%' : '0%'
             ];
         }
@@ -208,73 +208,129 @@ class KeuanganHelper
 
         return [
             'percentage' => abs($percentage),
-            'direction' => $percentage > 0 ? 'naik' : ($percentage < 0 ? 'turun' : 'sama'),
+            'direction' => $percentage > 0 ? 'up' : ($percentage < 0 ? 'down' : 'same'),
             'formatted' => ($percentage >= 0 ? '+' : '') . number_format($percentage, 1) . '%'
         ];
     }
 
     /**
-     * Prediksi kas untuk bulan depan berdasarkan rata-rata
+     * Predict cash flow for next month based on average
      */
-    public static function prediksiKas(): array
+    public static function predictCashFlow(): array
     {
-        // Ambil data 3 bulan terakhir untuk prediksi
-        $bulanSekarang = now()->month;
-        $tahunSekarang = now()->year;
+        // Get data from last 3 months for prediction
+        $currentMonth = now()->month;
+        $currentYear = now()->year;
 
-        $rataRataPemasukan = 0;
-        $rataRataPengeluaran = 0;
-        $bulanDenganData = 0;
+        $averageIncome = 0;
+        $averageExpenses = 0;
+        $monthsWithData = 0;
 
         for ($i = 0; $i < 3; $i++) {
-            $bulan = $bulanSekarang - $i;
-            $tahun = $tahunSekarang;
+            $month = $currentMonth - $i;
+            $year = $currentYear;
 
-            if ($bulan <= 0) {
-                $bulan += 12;
-                $tahun--;
+            if ($month <= 0) {
+                $month += 12;
+                $year--;
             }
 
-            $pemasukan = TransaksiKeuangan::pemasukan()
-                ->whereMonth('tanggal', $bulan)
-                ->whereYear('tanggal', $tahun)
+            $income = TransaksiKeuangan::pemasukan()
+                ->whereMonth('tanggal', $month)
+                ->whereYear('tanggal', $year)
                 ->sum('jumlah');
 
-            $pengeluaran = TransaksiKeuangan::pengeluaran()
-                ->whereMonth('tanggal', $bulan)
-                ->whereYear('tanggal', $tahun)
+            $expenses = TransaksiKeuangan::pengeluaran()
+                ->whereMonth('tanggal', $month)
+                ->whereYear('tanggal', $year)
                 ->sum('jumlah');
 
-            if ($pemasukan > 0 || $pengeluaran > 0) {
-                $rataRataPemasukan += $pemasukan;
-                $rataRataPengeluaran += $pengeluaran;
-                $bulanDenganData++;
+            if ($income > 0 || $expenses > 0) {
+                $averageIncome += $income;
+                $averageExpenses += $expenses;
+                $monthsWithData++;
             }
         }
 
-        if ($bulanDenganData > 0) {
-            $rataRataPemasukan = $rataRataPemasukan / $bulanDenganData;
-            $rataRataPengeluaran = $rataRataPengeluaran / $bulanDenganData;
+        if ($monthsWithData > 0) {
+            $averageIncome = $averageIncome / $monthsWithData;
+            $averageExpenses = $averageExpenses / $monthsWithData;
         }
 
-        $prediksiKeuntungan = $rataRataPemasukan - $rataRataPengeluaran;
-        $saldoSaatIni = self::saldoKas();
-        $prediksiSaldo = $saldoSaatIni + $prediksiKeuntungan;
+        $predictedProfit = $averageIncome - $averageExpenses;
+        $currentBalance = self::cashBalance();
+        $predictedBalance = $currentBalance + $predictedProfit;
 
         return [
-            'prediksi_pemasukan' => $rataRataPemasukan,
-            'prediksi_pengeluaran' => $rataRataPengeluaran,
-            'prediksi_keuntungan' => $prediksiKeuntungan,
-            'saldo_saat_ini' => $saldoSaatIni,
-            'prediksi_saldo' => $prediksiSaldo,
-            'confidence' => $bulanDenganData >= 2 ? 'tinggi' : ($bulanDenganData == 1 ? 'sedang' : 'rendah'),
+            'predicted_income' => $averageIncome,
+            'predicted_expenses' => $averageExpenses,
+            'predicted_profit' => $predictedProfit,
+            'current_balance' => $currentBalance,
+            'predicted_balance' => $predictedBalance,
+            'confidence' => $monthsWithData >= 2 ? 'high' : ($monthsWithData == 1 ? 'medium' : 'low'),
             'formatted' => [
-                'prediksi_pemasukan' => self::formatRupiah($rataRataPemasukan),
-                'prediksi_pengeluaran' => self::formatRupiah($rataRataPengeluaran),
-                'prediksi_keuntungan' => self::formatRupiah($prediksiKeuntungan),
-                'saldo_saat_ini' => self::formatRupiah($saldoSaatIni),
-                'prediksi_saldo' => self::formatRupiah($prediksiSaldo),
+                'predicted_income' => self::formatRupiah($averageIncome),
+                'predicted_expenses' => self::formatRupiah($averageExpenses),
+                'predicted_profit' => self::formatRupiah($predictedProfit),
+                'current_balance' => self::formatRupiah($currentBalance),
+                'predicted_balance' => self::formatRupiah($predictedBalance),
             ]
         ];
+    }
+
+    // Legacy method aliases for backward compatibility
+    public static function totalPemasukan(?Carbon $start = null, ?Carbon $end = null): float
+    {
+        return self::totalIncome($start, $end);
+    }
+
+    public static function totalPengeluaran(?Carbon $start = null, ?Carbon $end = null): float
+    {
+        return self::totalExpenses($start, $end);
+    }
+
+    public static function keuntungan(?Carbon $start = null, ?Carbon $end = null): float
+    {
+        return self::profit($start, $end);
+    }
+
+    public static function saldoKas(): float
+    {
+        return self::cashBalance();
+    }
+
+    public static function ringkasanKeuangan(?Carbon $start = null, ?Carbon $end = null): array
+    {
+        return self::financialSummary($start, $end);
+    }
+
+    public static function trendHarian(int $days = 30): array
+    {
+        return self::dailyTrends($days);
+    }
+
+    public static function trendBulanan(): array
+    {
+        return self::monthlyTrends();
+    }
+
+    public static function breakdownPerRekening(?Carbon $start = null, ?Carbon $end = null): Collection
+    {
+        return self::breakdownByAccount($start, $end);
+    }
+
+    public static function cekTransaksiExists($referenceType, $referenceId): bool
+    {
+        return self::checkTransactionExists($referenceType, $referenceId);
+    }
+
+    public static function persentasePerubahan(float $current, float $previous): array
+    {
+        return self::percentageChange($current, $previous);
+    }
+
+    public static function prediksiKas(): array
+    {
+        return self::predictCashFlow();
     }
 }

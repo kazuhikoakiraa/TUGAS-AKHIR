@@ -7,37 +7,37 @@ use App\Models\TransaksiKeuangan;
 use Filament\Widgets\ChartWidget;
 use Carbon\Carbon;
 
-class KeuanganDashboardWidget extends ChartWidget
+class FinancialTrendWidget extends ChartWidget
 {
-    protected static ?string $heading = 'Tren Keuangan (30 Hari Terakhir)';
+    protected static ?string $heading = 'Financial Trends (Last 30 Days)';
     protected static ?int $sort = 2;
     protected int | string | array $columnSpan = 'full';
 
     protected function getData(): array
     {
-        $trendData = KeuanganHelper::trendHarian(30);
+        $trendData = KeuanganHelper::dailyTrends(30);
 
         return [
             'datasets' => [
                 [
-                    'label' => 'Pemasukan',
-                    'data' => array_column($trendData, 'pemasukan'),
+                    'label' => 'Income',
+                    'data' => array_column($trendData, 'income'),
                     'backgroundColor' => 'rgba(34, 197, 94, 0.1)',
                     'borderColor' => 'rgb(34, 197, 94)',
                     'borderWidth' => 2,
                     'fill' => true,
                 ],
                 [
-                    'label' => 'Pengeluaran',
-                    'data' => array_column($trendData, 'pengeluaran'),
+                    'label' => 'Expenses',
+                    'data' => array_column($trendData, 'expenses'),
                     'backgroundColor' => 'rgba(239, 68, 68, 0.1)',
                     'borderColor' => 'rgb(239, 68, 68)',
                     'borderWidth' => 2,
                     'fill' => true,
                 ],
                 [
-                    'label' => 'Keuntungan',
-                    'data' => array_column($trendData, 'keuntungan'),
+                    'label' => 'Profit',
+                    'data' => array_column($trendData, 'profit'),
                     'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
                     'borderColor' => 'rgb(59, 130, 246)',
                     'borderWidth' => 2,
@@ -45,7 +45,7 @@ class KeuanganDashboardWidget extends ChartWidget
                     'type' => 'line',
                 ],
             ],
-            'labels' => array_column($trendData, 'tanggal_formatted'),
+            'labels' => array_column($trendData, 'date_formatted'),
         ];
     }
 
@@ -89,30 +89,30 @@ class KeuanganDashboardWidget extends ChartWidget
     }
 }
 
-class KeuanganBulananWidget extends ChartWidget
+class MonthlyFinancialWidget extends ChartWidget
 {
-    protected static ?string $heading = 'Tren Bulanan (Tahun Ini)';
+    protected static ?string $heading = 'Monthly Trends (This Year)';
     protected static ?int $sort = 3;
     protected int | string | array $columnSpan = 'full';
 
     protected function getData(): array
     {
-        $trendData = KeuanganHelper::trendBulanan();
+        $trendData = KeuanganHelper::monthlyTrends();
 
         return [
             'datasets' => [
                 [
-                    'label' => 'Pemasukan',
-                    'data' => array_column($trendData, 'pemasukan'),
+                    'label' => 'Income',
+                    'data' => array_column($trendData, 'income'),
                     'backgroundColor' => 'rgba(34, 197, 94, 0.8)',
                 ],
                 [
-                    'label' => 'Pengeluaran',
-                    'data' => array_column($trendData, 'pengeluaran'),
+                    'label' => 'Expenses',
+                    'data' => array_column($trendData, 'expenses'),
                     'backgroundColor' => 'rgba(239, 68, 68, 0.8)',
                 ],
             ],
-            'labels' => array_column($trendData, 'bulan_nama'),
+            'labels' => array_column($trendData, 'month_name'),
         ];
     }
 
@@ -147,4 +147,15 @@ class KeuanganBulananWidget extends ChartWidget
             ]
         ];
     }
+}
+
+// Legacy class aliases for backward compatibility
+class KeuanganDashboardWidget extends FinancialTrendWidget
+{
+    protected static ?string $heading = 'Financial Trends (Last 30 Days)';
+}
+
+class KeuanganBulananWidget extends MonthlyFinancialWidget
+{
+    protected static ?string $heading = 'Monthly Trends (This Year)';
 }

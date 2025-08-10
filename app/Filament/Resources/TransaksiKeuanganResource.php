@@ -30,25 +30,25 @@ class TransaksiKeuanganResource extends Resource
 {
     protected static ?string $model = TransaksiKeuangan::class;
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
-    protected static ?string $navigationLabel = 'Transaksi Keuangan';
-    protected static ?string $modelLabel = 'Transaksi Keuangan';
-    protected static ?string $pluralModelLabel = 'Transaksi Keuangan';
-    protected static ?string $navigationGroup = 'Keuangan';
-    protected static ?int $navigationSort = 1;
+    protected static ?string $navigationLabel = 'Financial Transactions';
+    protected static ?string $modelLabel = 'Financial Transaction';
+    protected static ?string $pluralModelLabel = 'Financial Transactions';
+    protected static ?string $navigationGroup = 'Transactions';
+    protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Section::make('Informasi Transaksi')
+                Section::make('Transaction Information')
                     ->schema([
                         Grid::make(2)
                             ->schema([
                                 Forms\Components\Select::make('jenis')
-                                    ->label('Jenis Transaksi')
+                                    ->label('Transaction Type')
                                     ->options([
-                                        'pemasukan' => 'Pemasukan',
-                                        'pengeluaran' => 'Pengeluaran',
+                                        'pemasukan' => 'Income',
+                                        'pengeluaran' => 'Expense',
                                     ])
                                     ->required()
                                     ->live()
@@ -59,7 +59,7 @@ class TransaksiKeuanganResource extends Resource
                                     }),
 
                                 Forms\Components\DatePicker::make('tanggal')
-                                    ->label('Tanggal Transaksi')
+                                    ->label('Transaction Date')
                                     ->required()
                                     ->default(now()),
                             ]),
@@ -67,7 +67,7 @@ class TransaksiKeuanganResource extends Resource
                         Grid::make(2)
                             ->schema([
                                 Forms\Components\Select::make('id_rekening')
-                                    ->label('Rekening Bank')
+                                    ->label('Bank Account')
                                     ->options(RekeningBank::all()->pluck('nama_bank', 'id'))
                                     ->searchable()
                                     ->required()
@@ -75,7 +75,7 @@ class TransaksiKeuanganResource extends Resource
                                         "{$record->nama_bank} - {$record->nomor_rekening}"),
 
                                 Forms\Components\TextInput::make('jumlah')
-                                    ->label('Jumlah')
+                                    ->label('Amount')
                                     ->numeric()
                                     ->required()
                                     ->prefix('Rp')
@@ -83,16 +83,16 @@ class TransaksiKeuanganResource extends Resource
                             ]),
 
                         Forms\Components\Textarea::make('keterangan')
-                            ->label('Keterangan')
+                            ->label('Description')
                             ->rows(3)
                             ->columnSpanFull(),
                     ]),
 
-                Section::make('Referensi Transaksi')
-                    ->description('Pilih referensi jika transaksi terkait dengan PO Supplier atau Invoice')
+                Section::make('Transaction Reference')
+                    ->description('Select reference if transaction is related to Supplier PO or Invoice')
                     ->schema([
                         Forms\Components\Select::make('id_po_supplier')
-                            ->label('PO Supplier')
+                            ->label('Supplier PO')
                             ->options(function () {
                                 return PoSupplier::with('supplier')
                                     ->where('status_po', PoStatus::APPROVED)
@@ -108,7 +108,7 @@ class TransaksiKeuanganResource extends Resource
                                     $po = PoSupplier::find($state);
                                     if ($po) {
                                         $set('jumlah', $po->total);
-                                        $set('keterangan', "Pembayaran PO Supplier {$po->nomor_po} - {$po->supplier->nama}");
+                                        $set('keterangan', "Payment for Supplier PO {$po->nomor_po} - {$po->supplier->nama}");
                                     }
                                 }
                             }),
@@ -120,7 +120,7 @@ class TransaksiKeuanganResource extends Resource
                                     ->where('status', 'paid')
                                     ->get()
                                     ->mapWithKeys(function ($invoice) {
-                                        $customerName = $invoice->poCustomer?->customer?->nama ?? 'Customer tidak ditemukan';
+                                        $customerName = $invoice->poCustomer?->customer?->nama ?? 'Customer not found';
                                         return [$invoice->id => $invoice->nomor_invoice . ' - ' . $customerName . ' (Rp ' . number_format($invoice->grand_total, 0, ',', '.') . ')'];
                                     });
                             })
@@ -131,8 +131,8 @@ class TransaksiKeuanganResource extends Resource
                                     $invoice = Invoice::with('poCustomer.customer')->find($state);
                                     if ($invoice) {
                                         $set('jumlah', $invoice->grand_total);
-                                        $customerName = $invoice->poCustomer?->customer?->nama ?? 'Customer tidak ditemukan';
-                                        $set('keterangan', "Pembayaran Invoice {$invoice->nomor_invoice} - {$customerName}");
+                                        $customerName = $invoice->poCustomer?->customer?->nama ?? 'Customer not found';
+                                        $set('keterangan', "Payment for Invoice {$invoice->nomor_invoice} - {$customerName}");
                                     }
                                 }
                             }),
@@ -146,13 +146,13 @@ class TransaksiKeuanganResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('tanggal')
-                    ->label('Tanggal')
+                    ->label('Date')
                     ->date('d/m/Y')
                     ->sortable()
                     ->searchable(),
 
                 Tables\Columns\BadgeColumn::make('jenis')
-                    ->label('Jenis')
+                    ->label('Type')
                     ->colors([
                         'success' => 'pemasukan',
                         'danger' => 'pengeluaran',
@@ -161,6 +161,11 @@ class TransaksiKeuanganResource extends Resource
                         'heroicon-s-arrow-trending-up' => 'pemasukan',
                         'heroicon-s-arrow-trending-down' => 'pengeluaran',
                     ])
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'pemasukan' => 'Income',
+                        'pengeluaran' => 'Expense',
+                        default => $state,
+                    })
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('rekening.nama_bank')
@@ -169,11 +174,11 @@ class TransaksiKeuanganResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('rekening.nomor_rekening')
-                    ->label('No. Rekening')
+                    ->label('Account No.')
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('jumlah')
-                    ->label('Jumlah')
+                    ->label('Amount')
                     ->money('IDR')
                     ->sortable()
                     ->color(fn (string $state, $record): string =>
@@ -181,42 +186,42 @@ class TransaksiKeuanganResource extends Resource
                     ->weight('bold'),
 
                 Tables\Columns\TextColumn::make('poSupplier.nomor_po')
-                    ->label('PO Supplier')
+                    ->label('Supplier PO')
                     ->searchable()
                     ->toggleable()
                     ->placeholder('—'),
 
                 Tables\Columns\TextColumn::make('keterangan')
-                    ->label('Keterangan')
+                    ->label('Description')
                     ->limit(50)
                     ->searchable()
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Dibuat')
+                    ->label('Created')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('jenis')
-                    ->label('Jenis Transaksi')
+                    ->label('Transaction Type')
                     ->options([
-                        'pemasukan' => 'Pemasukan',
-                        'pengeluaran' => 'Pengeluaran',
+                        'pemasukan' => 'Income',
+                        'pengeluaran' => 'Expense',
                     ]),
 
                 SelectFilter::make('id_rekening')
-                    ->label('Rekening Bank')
+                    ->label('Bank Account')
                     ->relationship('rekening', 'nama_bank')
                     ->searchable(),
 
                 Filter::make('tanggal')
                     ->form([
                         DatePicker::make('tanggal_dari')
-                            ->label('Dari Tanggal'),
+                            ->label('From Date'),
                         DatePicker::make('tanggal_sampai')
-                            ->label('Sampai Tanggal'),
+                            ->label('To Date'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -232,10 +237,10 @@ class TransaksiKeuanganResource extends Resource
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
                         if ($data['tanggal_dari'] ?? null) {
-                            $indicators[] = 'Dari: ' . \Carbon\Carbon::parse($data['tanggal_dari'])->format('d/m/Y');
+                            $indicators[] = 'From: ' . \Carbon\Carbon::parse($data['tanggal_dari'])->format('d/m/Y');
                         }
                         if ($data['tanggal_sampai'] ?? null) {
-                            $indicators[] = 'Sampai: ' . \Carbon\Carbon::parse($data['tanggal_sampai'])->format('d/m/Y');
+                            $indicators[] = 'To: ' . \Carbon\Carbon::parse($data['tanggal_sampai'])->format('d/m/Y');
                         }
                         return $indicators;
                     }),
@@ -243,11 +248,11 @@ class TransaksiKeuanganResource extends Resource
                 Filter::make('periode')
                     ->form([
                         Forms\Components\Select::make('periode')
-                            ->label('Periode')
+                            ->label('Period')
                             ->options([
-                                'minggu_ini' => 'Minggu Ini',
-                                'bulan_ini' => 'Bulan Ini',
-                                'tahun_ini' => 'Tahun Ini',
+                                'minggu_ini' => 'This Week',
+                                'bulan_ini' => 'This Month',
+                                'tahun_ini' => 'This Year',
                             ])
                     ])
                     ->query(function (Builder $query, array $data): Builder {
@@ -260,9 +265,9 @@ class TransaksiKeuanganResource extends Resource
                     })
                     ->indicateUsing(function (array $data): ?string {
                         return match ($data['periode'] ?? null) {
-                            'minggu_ini' => 'Periode: Minggu Ini',
-                            'bulan_ini' => 'Periode: Bulan Ini',
-                            'tahun_ini' => 'Periode: Tahun Ini',
+                            'minggu_ini' => 'Period: This Week',
+                            'bulan_ini' => 'Period: This Month',
+                            'tahun_ini' => 'Period: This Year',
                             default => null,
                         };
                     }),
@@ -277,15 +282,15 @@ class TransaksiKeuanganResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
 
                     BulkAction::make('export_excel')
-                        ->label('Export ke Excel')
+                        ->label('Export to Excel')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('success')
                         ->action(function (Collection $records) {
-                            $fileName = 'transaksi-keuangan-' . now()->format('Y-m-d-H-i-s') . '.xlsx';
+                            $fileName = 'financial-transactions-' . now()->format('Y-m-d-H-i-s') . '.xlsx';
 
                             Notification::make()
-                                ->title('Export berhasil')
-                                ->body("File {$fileName} sedang diunduh")
+                                ->title('Export successful')
+                                ->body("File {$fileName} is being downloaded")
                                 ->success()
                                 ->send();
 
@@ -295,15 +300,15 @@ class TransaksiKeuanganResource extends Resource
             ])
             ->headerActions([
                 Tables\Actions\Action::make('export_all')
-                    ->label('Export Semua')
+                    ->label('Export All')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('success')
                     ->action(function () {
-                        $fileName = 'semua-transaksi-keuangan-' . now()->format('Y-m-d-H-i-s') . '.xlsx';
+                        $fileName = 'all-financial-transactions-' . now()->format('Y-m-d-H-i-s') . '.xlsx';
 
                         Notification::make()
-                            ->title('Export berhasil')
-                            ->body("File {$fileName} sedang diunduh")
+                            ->title('Export successful')
+                            ->body("File {$fileName} is being downloaded")
                             ->success()
                             ->send();
 

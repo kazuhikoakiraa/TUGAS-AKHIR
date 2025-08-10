@@ -21,9 +21,9 @@ class ViewTransaksiKeuangan extends ViewRecord
             Actions\EditAction::make(),
             Actions\DeleteAction::make()
                 ->requiresConfirmation()
-                ->modalHeading('Hapus Transaksi')
-                ->modalDescription('Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.')
-                ->modalSubmitActionLabel('Hapus'),
+                ->modalHeading('Delete Transaction')
+                ->modalDescription('Are you sure you want to delete this transaction? This action cannot be undone.')
+                ->modalSubmitActionLabel('Delete'),
         ];
     }
 
@@ -31,24 +31,24 @@ class ViewTransaksiKeuangan extends ViewRecord
     {
         return $infolist
             ->schema([
-                Section::make('Informasi Transaksi')
+                Section::make('Transaction Information')
                     ->schema([
                         Grid::make(2)
                             ->schema([
                                 TextEntry::make('tanggal')
-                                    ->label('Tanggal Transaksi')
+                                    ->label('Transaction Date')
                                     ->date('d F Y'),
 
                                 TextEntry::make('jenis')
-                                    ->label('Jenis Transaksi')
+                                    ->label('Transaction Type')
                                     ->badge()
                                     ->color(fn (string $state): string => match ($state) {
                                         'pemasukan' => 'success',
                                         'pengeluaran' => 'danger',
                                     })
                                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                                        'pemasukan' => 'Pemasukan',
-                                        'pengeluaran' => 'Pengeluaran',
+                                        'pemasukan' => 'Income',
+                                        'pengeluaran' => 'Expense',
                                     }),
                             ]),
 
@@ -58,11 +58,11 @@ class ViewTransaksiKeuangan extends ViewRecord
                                     ->label('Bank'),
 
                                 TextEntry::make('rekening.nomor_rekening')
-                                    ->label('Nomor Rekening'),
+                                    ->label('Account Number'),
                             ]),
 
                         TextEntry::make('jumlah')
-                            ->label('Jumlah')
+                            ->label('Amount')
                             ->money('IDR')
                             ->size(TextEntry\TextEntrySize::Large)
                             ->weight(FontWeight::Bold)
@@ -70,50 +70,50 @@ class ViewTransaksiKeuangan extends ViewRecord
                                 $record->jenis === 'pemasukan' ? 'success' : 'danger'),
 
                         TextEntry::make('keterangan')
-                            ->label('Keterangan')
-                            ->placeholder('Tidak ada keterangan'),
+                            ->label('Description')
+                            ->placeholder('No description'),
                     ]),
 
-                Section::make('Referensi')
+                Section::make('Reference')
                     ->schema([
                         TextEntry::make('poSupplier.nomor_po')
-                            ->label('Nomor PO Supplier')
+                            ->label('Supplier PO Number')
                             ->url(fn ($record) => $record->poSupplier ?
                                 route('filament.admin.resources.po-suppliers.view', $record->poSupplier) : null)
                             ->color('primary')
-                            ->placeholder('Tidak ada referensi PO')
+                            ->placeholder('No PO reference')
                             ->visible(fn ($record) => $record->jenis === 'pengeluaran'),
 
                         TextEntry::make('poSupplier.supplier.nama')
-                            ->label('Nama Supplier')
+                            ->label('Supplier Name')
                             ->placeholder('—')
                             ->visible(fn ($record) => $record->jenis === 'pengeluaran' && $record->poSupplier),
 
                         TextEntry::make('invoice.nomor_invoice')
-                            ->label('Nomor Invoice')
+                            ->label('Invoice Number')
                             ->url(fn ($record) => $record->invoice ?
                                 route('filament.admin.resources.invoices.view', $record->invoice) : null)
                             ->color('primary')
-                            ->placeholder('Tidak ada referensi Invoice')
+                            ->placeholder('No invoice reference')
                             ->visible(fn ($record) => $record->jenis === 'pemasukan'),
 
                         TextEntry::make('invoice.poCustomer.customer.nama')
-                            ->label('Nama Customer')
+                            ->label('Customer Name')
                             ->placeholder('—')
                             ->visible(fn ($record) => $record->jenis === 'pemasukan' && $record->invoice),
                     ])
                     ->visible(fn ($record) => $record->poSupplier || $record->invoice),
 
-                Section::make('Informasi Sistem')
+                Section::make('System Information')
                     ->schema([
                         Grid::make(2)
                             ->schema([
                                 TextEntry::make('created_at')
-                                    ->label('Dibuat Pada')
+                                    ->label('Created At')
                                     ->dateTime('d F Y, H:i'),
 
                                 TextEntry::make('updated_at')
-                                    ->label('Diperbarui Pada')
+                                    ->label('Updated At')
                                     ->dateTime('d F Y, H:i'),
                             ]),
                     ])

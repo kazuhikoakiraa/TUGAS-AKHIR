@@ -22,7 +22,7 @@ class PoSupplierResource extends Resource
 {
     protected static ?string $model = PoSupplier::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-truck';
+    protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
 
     protected static ?string $navigationLabel = 'Supplier PO';
 

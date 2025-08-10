@@ -70,6 +70,8 @@ return [
 
         'pages' => [
             'Dashboard',
+            'Appearance',
+            'Themes',
         ],
 
         'widgets' => [

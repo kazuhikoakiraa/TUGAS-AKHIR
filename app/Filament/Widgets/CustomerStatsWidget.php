@@ -5,9 +5,12 @@ namespace App\Filament\Widgets;
 use App\Models\Customer;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 
 class CustomerStatsWidget extends BaseWidget
 {
+    use HasWidgetShield;
+
     protected static ?string $pollingInterval = '30s';
 
     protected static bool $isLazy = true;

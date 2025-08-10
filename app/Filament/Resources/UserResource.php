@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Password;
 use Filament\Notifications\Notification;
 use App\Models\ActivityLog;
 
+
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;

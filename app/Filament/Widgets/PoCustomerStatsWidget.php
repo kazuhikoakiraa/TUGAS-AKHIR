@@ -2,14 +2,17 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\PoCustomer;
 use App\Enums\PoStatus;
-use Filament\Widgets\StatsOverviewWidget as BaseWidget;
-use Filament\Widgets\StatsOverviewWidget\Stat;
+use App\Models\PoCustomer;
 use Illuminate\Support\Carbon;
+use Filament\Widgets\StatsOverviewWidget\Stat;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 
 class PoCustomerStatsWidget extends BaseWidget
 {
+    use HasWidgetShield;
+
     protected static ?int $sort = 1;
 
     protected function getStats(): array

@@ -2,14 +2,17 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\PoCustomer;
-use App\Enums\PoStatus;
 use Filament\Tables;
+use App\Enums\PoStatus;
+use App\Models\PoCustomer;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 
 class LatestPoCustomerWidget extends BaseWidget
 {
+    use HasWidgetShield;
+
     protected static ?string $heading = 'Latest Customer Purchase Orders';
 
     protected int | string | array $columnSpan = 'full';

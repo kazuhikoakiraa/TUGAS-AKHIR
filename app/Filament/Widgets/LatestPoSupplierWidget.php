@@ -2,14 +2,17 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\PoSupplier;
-use App\Enums\PoStatus;
 use Filament\Tables;
+use App\Enums\PoStatus;
+use App\Models\PoSupplier;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 
 class LatestPoSupplierWidget extends BaseWidget
 {
+    use HasWidgetShield;
+
     protected static ?string $heading = 'Latest Supplier Purchase Orders';
 
     protected int | string | array $columnSpan = 'full';

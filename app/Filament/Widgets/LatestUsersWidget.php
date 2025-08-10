@@ -6,9 +6,12 @@ use App\Models\User;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 
 class LatestUsersWidget extends BaseWidget
 {
+    use HasWidgetShield;
+
     protected static ?string $heading = 'Latest Users';
 
     protected static ?int $sort = 3;

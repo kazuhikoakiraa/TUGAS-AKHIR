@@ -3,11 +3,14 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Supplier;
-use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 
 class SupplierStatsWidget extends BaseWidget
 {
+    use HasWidgetShield;
+
     protected static ?string $pollingInterval = '30s';
 
     protected static bool $isLazy = true;

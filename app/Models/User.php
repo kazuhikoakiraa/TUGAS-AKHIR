@@ -11,15 +11,18 @@ use App\Models\ActivityLog;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Notifications\Notifiable;
-use Filament\Tables\Columns\Layout\Panel;
+use Filament\Panel;
+use Filament\Models\Contracts\FilamentUser;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Spatie\Permission\Traits\HasRoles;
+use App\Notifications\CustomVerifyEmail;
+use App\Notifications\CustomResetPassword;
 
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable implements MustVerifyEmail, FilamentUser
 {
     use HasFactory, Notifiable, HasRoles;
 
@@ -33,7 +36,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'role',
-        'email_verified_at', // Tambahkan ini untuk manual verification
+        'email_verified_at',
     ];
 
     /**
@@ -88,7 +91,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         ActivityLog::create([
             'subject_type' => get_class($model),
-            'subject_id' => $model->id, // Tambahkan subject_id
+            'subject_id' => $model->id,
             'causer_type' => Auth::check() ? get_class(Auth::user()) : null,
             'causer_id' => Auth::id(),
             'event' => $event,
@@ -126,7 +129,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Invoice::class, 'id_user');
     }
 
-    // Activity log relation - Perbaiki relation
+    // Activity log relations
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class, 'subject_id')
@@ -141,11 +144,27 @@ class User extends Authenticatable implements MustVerifyEmail
                     ->orderBy('created_at', 'desc');
     }
 
-    // Method untuk mengirim email verification
+    /**
+     * Check if user can access Filament panel
+     * Only verified users can access
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        // Allow access only if email is verified
+        if (!$this->hasVerifiedEmail()) {
+            return false;
+        }
+
+        return $this->hasAnyRole(['super_admin', 'user', 'manager', 'staff']);
+    }
+
+    /**
+     * Method untuk mengirim email verification
+     */
     public function sendEmailVerificationNotification()
     {
         try {
-            $this->notify(new \App\Notifications\CustomVerifyEmail);
+            $this->notify(new CustomVerifyEmail);
 
             // Log activity
             ActivityLog::create([
@@ -174,16 +193,15 @@ class User extends Authenticatable implements MustVerifyEmail
         }
     }
 
-    public function canAccessPanel(Panel $panel): bool
-{
-    return $this->hasAnyRole(['super_admin','user', 'manager', 'staff']);
-}
-
-    // Method untuk generate password reset token - Perbaiki dengan logging
+    /**
+     * Method untuk generate password reset token dengan logging
+     * DIPERBAIKI: Menggunakan CustomResetPasswordNotification
+     */
     public function sendPasswordResetNotification($token)
     {
         try {
-            $this->notify(new \App\Notifications\CustomResetPassword($token));
+            // Gunakan custom notification dengan template email yang sudah dibuat
+            $this->notify(new CustomResetPassword($token));
 
             // Log activity untuk password reset
             ActivityLog::create([
@@ -229,7 +247,62 @@ class User extends Authenticatable implements MustVerifyEmail
                 ]),
             ]);
 
-            throw $e; // Re-throw untuk error handling di controller
+            throw $e;
         }
+    }
+
+    /**
+     * Manual email verification by admin
+     */
+    public function markEmailAsVerified()
+    {
+        if ($this->hasVerifiedEmail()) {
+            return false;
+        }
+
+        $this->forceFill([
+            'email_verified_at' => $this->freshTimestamp(),
+        ])->save();
+
+        // Log activity
+        ActivityLog::create([
+            'subject_type' => get_class($this),
+            'subject_id' => $this->id,
+            'causer_type' => Auth::check() ? get_class(Auth::user()) : null,
+            'causer_id' => Auth::id(),
+            'event' => 'email_verified_manually',
+            'description' => 'Email verified manually by admin',
+            'properties' => json_encode([
+                'email' => $this->email,
+                'verified_by' => Auth::user()?->name ?? 'System',
+                'verified_at' => now(),
+            ]),
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Get user theme preference
+     */
+    public function getThemeAttribute($value)
+    {
+        return $value ?? 'default';
+    }
+
+    /**
+     * Scope untuk filter verified users
+     */
+    public function scopeVerified($query)
+    {
+        return $query->whereNotNull('email_verified_at');
+    }
+
+    /**
+     * Scope untuk filter unverified users
+     */
+    public function scopeUnverified($query)
+    {
+        return $query->whereNull('email_verified_at');
     }
 }

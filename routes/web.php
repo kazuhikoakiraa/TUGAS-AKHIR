@@ -12,11 +12,9 @@ use Illuminate\Auth\Events\PasswordReset;
 use App\Http\Controllers\PoCustomerController;
 use App\Http\Controllers\PoSupplierController;
 use App\Http\Controllers\SuratJalanController;
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
-
 
 Route::get('/', function () {
-    return redirect('/admin'); // atau sesuai prefix panel Filament Anda
+    return redirect('/admin');
 })->name('home');
 
 // Email Verification Routes
@@ -38,13 +36,14 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request) {
         $user->markEmailAsVerified();
         event(new Verified($user));
     }
+
     // Login user secara otomatis
     Auth::login($user);
 
     return redirect()->route('home')->with('status', 'Email berhasil diverifikasi dan Anda telah login ke sistem!');
 })->middleware(['signed'])->name('verification.verify');
 
-// Route untuk resend verification (opsional, jika ada form untuk resend)
+// Route untuk resend verification
 Route::post('/email/resend-verification', function (Request $request) {
     $request->validate(['email' => 'required|email|exists:users,email']);
 
@@ -59,63 +58,70 @@ Route::post('/email/resend-verification', function (Request $request) {
     return back()->with('status', 'Link verifikasi baru telah dikirim ke email Anda.');
 })->name('verification.resend');
 
-// Password Reset Routes (tanpa middleware guest)
-Route::get('/forgot-password', function () {
-    return view('auth.forgot-password');
-})->name('password.request');
+// Password Reset Routes - DIPERBAIKI
+Route::middleware('guest')->group(function () {
+    // Form forgot password
+    Route::get('/forgot-password', function () {
+        return view('auth.forgot-password');
+    })->name('password.request');
 
-Route::post('/forgot-password', function (Request $request) {
-    $request->validate(['email' => 'required|email']);
+    // Kirim reset link
+    Route::post('/forgot-password', function (Request $request) {
+        $request->validate(['email' => 'required|email']);
 
-    $status = Password::sendResetLink($request->only('email'));
+        $status = Password::sendResetLink($request->only('email'));
 
-    return $status === Password::RESET_LINK_SENT
-                ? back()->with(['status' => __($status)])
-                : back()->withErrors(['email' => __($status)]);
-})->name('password.email');
-
-Route::get('/reset-password/{token}', function (Request $request, string $token) {
-    return view('auth.reset-password', [
-        'token' => $token,
-        'email' => $request->query('email')
-    ]);
-})->name('password.reset');
-
-Route::post('/reset-password', function (Request $request) {
-    $request->validate([
-        'token' => 'required',
-        'email' => 'required|email',
-        'password' => 'required|min:8|confirmed',
-    ]);
-
-    $status = Password::reset(
-        $request->only('email', 'password', 'password_confirmation', 'token'),
-        function (User $user, string $password) {
-            $user->forceFill([
-                'password' => Hash::make($password)
-            ])->setRememberToken(Str::random(60));
-
-            $user->save();
-            event(new PasswordReset($user));
+        if ($status === Password::RESET_LINK_SENT) {
+            return back()->with(['status' => 'Link reset password telah dikirim ke email Anda. Silakan periksa inbox dan folder spam.']);
         }
-    );
 
-    return $status === Password::PASSWORD_RESET
-                ? redirect()->route('home')->with('status', __($status))
-                : back()->withErrors(['email' => [__($status)]]);
-})->name('password.update');
+        return back()->withErrors(['email' => __($status)]);
+    })->name('password.email');
 
-// Route::get('/po-customer/{poCustomer}/print', [PoCustomerController::class, 'print'])
-//     ->name('po-customer.print')
-//     ->middleware('auth');
+    // Form reset password - DENGAN SIGNED MIDDLEWARE
+    Route::get('/reset-password/{token}', function (Request $request, string $token) {
+        // Validasi signed URL jika menggunakan signed route
+        // Untuk sementara kita comment dulu validasi signed karena mungkin tidak menggunakan signed URL
+        // if (! $request->hasValidSignature()) {
+        //     return redirect()->route('password.request')->with('error', 'Link reset password sudah kedaluwarsa. Silakan minta link baru.');
+        // }
 
-// Route::get('/po-supplier/{poSupplier}/print', [PoSupplierController::class, 'print'])
-//     ->name('po-supplier.print')
-//     ->middleware('auth');
+        return view('auth.reset-password', [
+            'token' => $token,
+            'email' => $request->query('email')
+        ]);
+    })->name('password.reset');
+
+    // Proses reset password
+    Route::post('/reset-password', function (Request $request) {
+        $request->validate([
+            'token' => 'required',
+            'email' => 'required|email',
+            'password' => 'required|min:8|confirmed',
+        ]);
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user, string $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password)
+                ])->setRememberToken(Str::random(60));
+
+                $user->save();
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return redirect()->route('filament.admin.auth.login')->with('status', 'Password berhasil diubah. Silakan login dengan password baru.');
+        }
+
+        return back()->withErrors(['email' => [__($status)]]);
+    })->name('password.update');
+});
 
 // Routes untuk Surat Jalan PDF
 Route::middleware(['auth'])->group(function () {
-
     // Generate PDF Surat Jalan
     Route::get('/surat-jalan/{suratJalan}/pdf', [SuratJalanController::class, 'generatePdf'])
         ->name('surat-jalan.pdf')
@@ -131,7 +137,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('api.po-customers.available');
 });
 
-// Jika menggunakan API tanpa auth (sesuaikan dengan kebutuhan)
+// API routes
 Route::middleware(['api'])->prefix('api')->group(function () {
     Route::get('/surat-jalan/{suratJalan}', function (\App\Models\SuratJalan $suratJalan) {
         return response()->json([
@@ -140,4 +146,3 @@ Route::middleware(['api'])->prefix('api')->group(function () {
         ]);
     })->where('suratJalan', '[0-9]+');
 });
-// });

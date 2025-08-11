@@ -78,14 +78,8 @@ Route::middleware('guest')->group(function () {
         return back()->withErrors(['email' => __($status)]);
     })->name('password.email');
 
-    // Form reset password - DENGAN SIGNED MIDDLEWARE
+    // Form reset password
     Route::get('/reset-password/{token}', function (Request $request, string $token) {
-        // Validasi signed URL jika menggunakan signed route
-        // Untuk sementara kita comment dulu validasi signed karena mungkin tidak menggunakan signed URL
-        // if (! $request->hasValidSignature()) {
-        //     return redirect()->route('password.request')->with('error', 'Link reset password sudah kedaluwarsa. Silakan minta link baru.');
-        // }
-
         return view('auth.reset-password', [
             'token' => $token,
             'email' => $request->query('email')
@@ -112,11 +106,9 @@ Route::middleware('guest')->group(function () {
             }
         );
 
-        if ($status === Password::PASSWORD_RESET) {
-            return redirect()->route('filament.admin.auth.login')->with('status', 'Password berhasil diubah. Silakan login dengan password baru.');
-        }
-
-        return back()->withErrors(['email' => [__($status)]]);
+        return $status === Password::PASSWORD_RESET
+                    ? redirect()->route('home')->with('status', __($status))
+                    : back()->withErrors(['email' => [__($status)]]);
     })->name('password.update');
 });
 

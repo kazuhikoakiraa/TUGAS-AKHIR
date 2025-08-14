@@ -54,7 +54,7 @@ class SuratJalanResource extends Resource
                                 'poCustomer',
                                 'nomor_po',
                                 modifyQueryUsing: function (Builder $query, ?string $operation = null, $record = null) {
-                                    $query->where('jenis_po', 'Produk')
+                                    $query->where('jenis_po', 'Product')
                                           ->where('status_po', PoStatus::APPROVED)
                                           ->with('customer');
 

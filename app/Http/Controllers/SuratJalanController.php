@@ -4,131 +4,130 @@ namespace App\Http\Controllers;
 
 use App\Models\SuratJalan;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class SuratJalanController extends Controller
 {
     /**
-     * Generate PDF untuk surat jalan
+     * Generate PDF for Surat Jalan
      */
-    public function generatePdf(SuratJalan $suratJalan)
+    public function generatePDF(SuratJalan $suratJalan)
     {
         try {
-            // Load relasi yang diperlukan
-            $suratJalan->load(['poCustomer.customer', 'user']);
+            // Load relationships dengan error handling
+            $suratJalan->load([
+                'poCustomer' => function($query) {
+                    $query->with(['customer', 'details']);
+                },
+                'user'
+            ]);
 
-            // Pastikan data lengkap
-            if (!$suratJalan->poCustomer || !$suratJalan->poCustomer->customer) {
-                abort(404, 'Data PO Customer atau Customer tidak ditemukan');
+            $po = $suratJalan->poCustomer;
+            $customer = $po ? $po->customer : null;
+            $user = $suratJalan->user;
+
+            // Validate required data
+            if (!$po) {
+                throw new \Exception('PO Customer data not found');
             }
+
+            if (!$customer) {
+                throw new \Exception('Customer data not found');
+            }
+
+            // Company data (you can move this to config or database)
+            $company = [
+                'name' => config('app.company_name', 'PT. NAMA PERUSAHAAN'),
+                'address' => config('app.company_address', 'Alamat Perusahaan, Kota, Provinsi, Kode Pos'),
+                'phone' => config('app.company_phone', '+62 21 1234567'),
+                'email' => config('app.company_email', 'info@company.com'),
+                'website' => config('app.company_website', 'www.company.com'),
+                'npwp' => config('app.company_npwp', '00.000.000.0-000.000'),
+            ];
 
             $data = [
                 'suratJalan' => $suratJalan,
-                'customer' => $suratJalan->poCustomer->customer,
-                'po' => $suratJalan->poCustomer,
-                'user' => $suratJalan->user,
-                'company' => [
-                    'name' => config('app.name', 'PT. Your Company'),
-                    'address' => 'Alamat Perusahaan Anda',
-                    'phone' => 'Telepon Perusahaan',
-                    'email' => 'email@perusahaan.com',
-                ],
-                'generated_at' => now()->format('d F Y H:i:s'),
+                'po' => $po,
+                'customer' => $customer,
+                'user' => $user,
+                'company' => $company,
+                'generated_at' => Carbon::now()->format('d F Y H:i:s') . ' WIB'
             ];
 
-            $pdf = Pdf::loadView('pdf.surat-jalan', $data);
-            $pdf->setPaper('A4', 'portrait');
+            // Generate PDF dengan error handling
+            $pdf = Pdf::loadView('pdf.surat-jalan', $data)
+                ->setPaper('A4', 'portrait')
+                ->setOptions([
+                    'isHtml5ParserEnabled' => true,
+                    'isRemoteEnabled' => false, // Disable remote untuk keamanan
+                    'defaultFont' => 'DejaVu Sans', // Font yang lebih kompatibel
+                    'margin_top' => 10,
+                    'margin_right' => 10,
+                    'margin_bottom' => 15,
+                    'margin_left' => 10,
+                ]);
 
-            $filename = 'Surat_Jalan_' . str_replace(['/', ' '], '_', $suratJalan->nomor_surat_jalan) . '.pdf';
+            // Clean filename
+            $cleanNomor = preg_replace('/[^A-Za-z0-9\-]/', '-', $suratJalan->nomor_surat_jalan);
+            $filename = 'Surat-Jalan-' . $cleanNomor . '.pdf';
 
             return $pdf->download($filename);
 
         } catch (\Exception $e) {
-            Log::error('Error generating PDF: ' . $e->getMessage());
-            abort(500, 'Gagal generate PDF: ' . $e->getMessage());
+            // Log error dengan detail
+            Log::error('Error generating Surat Jalan PDF', [
+                'surat_jalan_id' => $suratJalan->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat membuat PDF: ' . $e->getMessage());
         }
     }
 
     /**
-     * Preview PDF di browser
+     * Preview PDF in browser
      */
-    public function previewPdf(SuratJalan $suratJalan)
+    public function previewPDF(SuratJalan $suratJalan)
     {
         try {
-            $suratJalan->load(['poCustomer.customer', 'user']);
+            // Load relationships
+            $suratJalan->load([
+                'poCustomer.customer',
+                'poCustomer.details',
+                'user'
+            ]);
 
-            if (!$suratJalan->poCustomer || !$suratJalan->poCustomer->customer) {
-                abort(404, 'Data PO Customer atau Customer tidak ditemukan');
-            }
+            $po = $suratJalan->poCustomer;
+            $customer = $po->customer;
+            $user = $suratJalan->user;
+
+            // Company data
+            $company = [
+                'name' => config('app.company_name', 'PT. NAMA PERUSAHAAN'),
+                'address' => config('app.company_address', 'Alamat Perusahaan, Kota, Provinsi, Kode Pos'),
+                'phone' => config('app.company_phone', '+62 21 1234567'),
+                'email' => config('app.company_email', 'info@company.com'),
+                'website' => config('app.company_website', 'www.company.com'),
+                'npwp' => config('app.company_npwp', '00.000.000.0-000.000'),
+            ];
 
             $data = [
                 'suratJalan' => $suratJalan,
-                'customer' => $suratJalan->poCustomer->customer,
-                'po' => $suratJalan->poCustomer,
-                'user' => $suratJalan->user,
-                'company' => [
-                    'name' => config('app.name', 'PT. Your Company'),
-                    'address' => 'Alamat Perusahaan Anda',
-                    'phone' => 'Telepon Perusahaan',
-                    'email' => 'email@perusahaan.com',
-                ],
-                'generated_at' => now()->format('d F Y H:i:s'),
+                'po' => $po,
+                'customer' => $customer,
+                'user' => $user,
+                'company' => $company,
+                'generated_at' => Carbon::now()->format('d F Y H:i:s') . ' WIB'
             ];
 
-            $pdf = Pdf::loadView('pdf.surat-jalan', $data);
-            $pdf->setPaper('A4', 'portrait');
-
-            return $pdf->stream('preview_surat_jalan.pdf');
+            // Return view for preview
+            return view('pdf.surat-jalan', $data);
 
         } catch (\Exception $e) {
-            Log::error('Error previewing PDF: ' . $e->getMessage());
-            abort(500, 'Gagal preview PDF: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Get available PO Customers for API
-     */
-    public function getAvailablePoCustomers(Request $request)
-    {
-        try {
-            $query = \App\Models\PoCustomer::with('customer')
-                ->where('jenis_po', 'Produk')
-                ->where('status_po', \App\Enums\PoStatus::APPROVED)
-                ->whereDoesntHave('suratJalan');
-
-            if ($request->has('search')) {
-                $search = $request->get('search');
-                $query->where(function ($q) use ($search) {
-                    $q->where('nomor_po', 'like', "%{$search}%")
-                      ->orWhereHas('customer', function ($customerQuery) use ($search) {
-                          $customerQuery->where('nama', 'like', "%{$search}%");
-                      });
-                });
-            }
-
-            $poCustomers = $query->limit(20)->get();
-
-            return response()->json([
-                'success' => true,
-                'data' => $poCustomers->map(function ($po) {
-                    return [
-                        'id' => $po->id,
-                        'nomor_po' => $po->nomor_po,
-                        'customer_nama' => $po->customer->nama ?? '',
-                        'customer_alamat' => $po->customer->alamat ?? '',
-                        'label' => "{$po->nomor_po} - {$po->customer->nama}",
-                    ];
-                }),
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error: ' . $e->getMessage(),
-            ], 500);
+            return back()->with('error', 'Terjadi kesalahan saat membuat preview: ' . $e->getMessage());
         }
     }
 }

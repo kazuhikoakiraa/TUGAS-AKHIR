@@ -95,7 +95,7 @@ class CreateSuratJalan extends CreateRecord
         }
 
         // Check PO type
-        if ($po->jenis_po !== 'Produk') {
+        if ($po->jenis_po !== 'Product') {
             throw new ValidationException(validator([], []), ['id_po_customer' => 'Only POs with type "Produk" can have delivery notes created.']);
         }
     }

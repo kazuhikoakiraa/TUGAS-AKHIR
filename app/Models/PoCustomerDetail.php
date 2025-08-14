@@ -14,10 +14,13 @@ class PoCustomerDetail extends Model
 
     protected $fillable = [
         'id_po_customer',
+        'nama_produk',        // TAMBAH FIELD INI
         'deskripsi',
         'jumlah',
+        'satuan',            // TAMBAH FIELD INI
         'harga_satuan',
         'total',
+        'keterangan',        // TAMBAH FIELD INI
     ];
 
     protected $casts = [
@@ -35,14 +38,11 @@ class PoCustomerDetail extends Model
     {
         parent::boot();
 
-        // PERBAIKAN: Hitung total saat saving
         static::saving(function ($detail) {
             $detail->total = $detail->jumlah * $detail->harga_satuan;
         });
 
-        // PERBAIKAN: Update parent totals lebih aman
         static::saved(function ($detail) {
-            // Pastikan relasi ada dan bukan dalam proses batch update
             if ($detail->poCustomer && !static::$updating_batch) {
                 $detail->poCustomer->updateTotalsWithoutEvents();
             }
@@ -55,10 +55,8 @@ class PoCustomerDetail extends Model
         });
     }
 
-    // TAMBAHAN: Property untuk mencegah update berulang
     protected static $updating_batch = false;
 
-    // TAMBAHAN: Method untuk batch operations
     public static function withoutUpdatingTotals(callable $callback)
     {
         static::$updating_batch = true;
@@ -80,7 +78,6 @@ class PoCustomerDetail extends Model
         return 'Rp ' . number_format($this->total, 0, ',', '.');
     }
 
-    // TAMBAHAN: Scope untuk filtering
     public function scopeForPoCustomer($query, $poCustomerId)
     {
         return $query->where('id_po_customer', $poCustomerId);

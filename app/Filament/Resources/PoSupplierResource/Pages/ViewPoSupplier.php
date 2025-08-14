@@ -60,13 +60,6 @@ class ViewPoSupplier extends ViewRecord
                         ->success()
                         ->send();
                 }),
-
-            Actions\Action::make('print')
-                ->label('Print PO')
-                ->icon('heroicon-o-printer')
-                ->color('gray')
-                ->url(fn (): string => route('po-supplier.print', $this->record))
-                ->openUrlInNewTab(),
         ];
     }
 

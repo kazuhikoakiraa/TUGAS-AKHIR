@@ -123,4 +123,16 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Company Configuration
+    |--------------------------------------------------------------------------
+    */
+    'company_name' => env('COMPANY_NAME', 'PT. Sentra Alam Anandana'),
+    'company_address' => env('COMPANY_ADDRESS', 'Jl. Contoh No. 123, Jakarta Pusat, DKI Jakarta 10110'),
+    'company_phone' => env('COMPANY_PHONE', '+62 21 1234567'),
+    'company_email' => env('COMPANY_EMAIL', 'info@company.com'),
+    'company_website' => env('COMPANY_WEBSITE', 'www.company.com'),
+    'company_npwp' => env('COMPANY_NPWP', '00.000.000.0-000.000'),
+
 ];

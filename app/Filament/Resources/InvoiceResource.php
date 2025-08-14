@@ -465,6 +465,6 @@ class InvoiceResource extends Resource
 
     public static function getNavigationBadgeColor(): ?string
     {
-        return static::getNavigationBadge() > 0 ? 'primary' : null;
+        return static::getNavigationBadge() >= 0 ? 'primary' : null;
     }
 }

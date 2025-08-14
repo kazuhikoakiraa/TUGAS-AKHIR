@@ -256,13 +256,6 @@ class SuratJalanResource extends Resource
             ->paginated([10, 25, 50, 100]);
     }
 
-    public static function getRelations(): array
-    {
-        return [
-            // Add relations here if needed
-        ];
-    }
-
     public static function getPages(): array
     {
         return [

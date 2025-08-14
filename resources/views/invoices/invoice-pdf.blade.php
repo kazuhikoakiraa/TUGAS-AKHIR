@@ -13,434 +13,505 @@
 
         body {
             font-family: 'DejaVu Sans', Arial, sans-serif;
-            font-size: 12px;
-            line-height: 1.4;
-            color: #333;
+            font-size: 10px;
+            line-height: 1.2;
+            color: #000;
             background: #fff;
         }
 
         .container {
-            max-width: 800px;
+            max-width: 210mm;
             margin: 0 auto;
-            padding: 20px;
+            padding: 8mm;
+            background: #fff;
+        }
+
+        .invoice-wrapper {
+            border: 2px solid #000;
+            padding: 0;
+            background: #fff;
+            height: auto;
         }
 
         .header {
-            border-bottom: 3px solid #2563eb;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            text-align: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid #000;
+            background: #fff;
         }
 
-        .company-info {
+        .invoice-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 3px;
+        }
+
+        .invoice-number {
+            font-size: 10px;
+            color: #000;
+            margin-bottom: 12px;
+        }
+
+        .company-info-section {
             display: table;
             width: 100%;
-            margin-bottom: 20px;
         }
 
         .company-details {
             display: table-cell;
+            width: 65%;
             vertical-align: top;
-            width: 60%;
+            text-align: left;
+            padding-right: 15px;
         }
 
-        .invoice-title {
+        .logo-section {
             display: table-cell;
+            width: 35%;
             vertical-align: top;
-            width: 40%;
-            text-align: right;
+            text-align: center;
         }
 
         .company-name {
-            font-size: 24px;
+            font-size: 14px;
             font-weight: bold;
-            color: #2563eb;
+            color: #000;
             margin-bottom: 5px;
         }
 
         .company-address {
+            font-size: 9px;
+            color: #000;
+            line-height: 1.3;
+        }
+
+        .logo-container {
+            width: 70px;
+            height: 70px;
+            border: 2px solid #000;
+            border-radius: 50%;
+            background: #f9f9f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+
+        .logo-container img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .logo-text {
+            font-size: 8px;
+            text-align: center;
             color: #666;
-            line-height: 1.5;
+            margin-top: 3px;
         }
 
-        .invoice-title h1 {
-            font-size: 32px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #2563eb;
+        .invoice-details {
+            padding: 10px 15px;
+            border-bottom: 1px solid #000;
+            background: #fff;
         }
 
-        .invoice-meta {
+        .details-section {
             display: table;
             width: 100%;
-            margin-bottom: 30px;
         }
 
-        .invoice-details, .customer-details {
+        .details-left {
             display: table-cell;
+            width: 50%;
             vertical-align: top;
-            width: 48%;
-            padding-right: 2%;
+            padding-right: 15px;
         }
 
-        .invoice-details h3, .customer-details h3 {
-            color: #2563eb;
-            font-size: 14px;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 5px;
+        .details-right {
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+        }
+
+        .detail-group {
+            margin-bottom: 8px;
+        }
+
+        .detail-title {
+            font-weight: bold;
+            font-size: 10px;
+            margin-bottom: 4px;
+            color: #000;
         }
 
         .detail-row {
-            margin-bottom: 5px;
+            margin-bottom: 2px;
+            font-size: 9px;
             display: table;
             width: 100%;
         }
 
         .detail-label {
-            font-weight: bold;
             display: table-cell;
-            width: 40%;
+            width: 65px;
+            font-weight: normal;
+        }
+
+        .detail-colon {
+            display: table-cell;
+            width: 10px;
         }
 
         .detail-value {
             display: table-cell;
-            width: 60%;
         }
 
-        .status {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: bold;
-            text-transform: uppercase;
+        .items-section {
+            padding: 0;
         }
-
-        .status.draft { background: #f3f4f6; color: #374151; }
-        .status.sent { background: #fef3c7; color: #d97706; }
-        .status.paid { background: #d1fae5; color: #059669; }
-        .status.overdue { background: #fee2e2; color: #dc2626; }
 
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 30px 0;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            font-size: 9px;
         }
 
         .items-table th {
-            background: #2563eb;
-            color: white;
-            padding: 12px;
-            text-align: left;
+            background: #e8e8e8;
+            border: 1px solid #000;
+            padding: 8px 6px;
+            text-align: center;
             font-weight: bold;
+            font-size: 9px;
         }
 
         .items-table td {
-            padding: 12px;
-            border-bottom: 1px solid #e5e7eb;
+            border: 1px solid #000;
+            padding: 8px 6px;
+            vertical-align: middle;
         }
 
-        .items-table tbody tr:nth-child(even) {
-            background: #f9fafb;
+        .items-table .desc-col {
+            width: 45%;
+            text-align: left;
         }
 
-        .text-right {
-            text-align: right;
-        }
-
-        .text-center {
+        .items-table .qty-col {
+            width: 10%;
             text-align: center;
         }
 
-        .totals {
-            width: 100%;
-            margin-top: 20px;
+        .items-table .price-col {
+            width: 20%;
+            text-align: right;
+        }
+
+        .items-table .total-col {
+            width: 25%;
+            text-align: right;
+        }
+
+        .totals-section {
+            padding: 8px 15px;
+            text-align: right;
         }
 
         .totals-table {
-            width: 300px;
             margin-left: auto;
+            width: 280px;
+            font-size: 9px;
             border-collapse: collapse;
         }
 
         .totals-table td {
-            padding: 8px 12px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .totals-table .total-label {
-            font-weight: bold;
+            padding: 3px 8px;
             text-align: right;
-            background: #f9fafb;
+            border-bottom: 1px solid #ddd;
         }
 
-        .totals-table .total-amount {
-            text-align: right;
-            width: 120px;
-        }
-
-        .grand-total {
-            font-size: 16px;
+        .totals-table .label-col {
+            text-align: left;
             font-weight: bold;
-            background: #2563eb;
-            color: white;
+            width: 140px;
         }
 
-        .grand-total td {
-            border: none;
+        .totals-table .amount-col {
+            text-align: right;
+            width: 140px;
         }
 
-        .notes {
-            margin-top: 30px;
-            padding: 20px;
-            background: #f9fafb;
-            border-left: 4px solid #2563eb;
+        .total-row {
+            border-top: 2px solid #000 !important;
+            font-weight: bold;
         }
 
-        .notes h4 {
-            color: #2563eb;
-            margin-bottom: 10px;
-        }
-
-        .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
-            text-align: center;
-            color: #666;
-            font-size: 11px;
+        .payment-section {
+            padding: 10px 15px;
+            border-top: 1px solid #000;
+            background: #fff;
         }
 
         .payment-info {
-            margin-top: 30px;
-            padding: 20px;
-            background: #f0f9ff;
-            border: 1px solid #0ea5e9;
-            border-radius: 8px;
+            font-size: 9px;
+            line-height: 1.4;
+            margin-bottom: 8px;
         }
 
-        .payment-info h4 {
-            color: #0369a1;
-            margin-bottom: 15px;
+        .bank-info {
+            margin: 6px 0;
+            font-size: 9px;
         }
 
-        .bank-details {
-            display: table;
-            width: 100%;
+        .contact-info {
+            margin: 8px 0;
+            font-size: 9px;
         }
 
-        .bank-item {
-            display: table-cell;
-            width: 50%;
-            background: white;
-            padding: 12px;
-            border-radius: 6px;
-            border: 1px solid #e0f2fe;
-            margin-right: 10px;
-        }
-
-        .bank-name {
+        .footer {
+            text-align: center;
+            padding: 8px;
+            margin-top: 10px;
+            font-size: 11px;
             font-weight: bold;
-            color: #0369a1;
-            margin-bottom: 5px;
+        }
+
+        .signature-section {
+            text-align: right;
+            padding: 12px 15px;
+            border-top: 1px solid #000;
+        }
+
+        .signature-block {
+            display: inline-block;
+            text-align: center;
+            width: 160px;
+        }
+
+        .signature-line {
+            margin-top: 35px;
+            border-bottom: 1px solid #000;
+            width: 140px;
+            margin-bottom: 8px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .company-footer {
+            text-align: center;
+            padding: 8px;
+            background: #000;
+            color: #fff;
+            font-weight: bold;
+            font-size: 10px;
         }
 
         @page {
-            margin: 1cm;
+            margin: 8mm;
+            size: A4;
         }
 
         @media print {
             body {
                 print-color-adjust: exact;
                 -webkit-print-color-adjust: exact;
+                font-size: 9px;
             }
             .container {
                 max-width: none;
                 margin: 0;
                 padding: 0;
             }
+            .invoice-wrapper {
+                height: auto;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="company-info">
-                <div class="company-details">
-                    <div class="company-name">PT. NAMA PERUSAHAAN ANDA</div>
-                    <div class="company-address">
-                        Alamat Perusahaan Lengkap<br>
-                        Kota, Provinsi, Kode Pos<br>
-                        Telp: (021) 1234-5678<br>
-                        Email: info@perusahaan.com<br>
-                        Website: www.perusahaan.com
+        <div class="invoice-wrapper">
+            <!-- Header -->
+            <div class="header">
+                <div class="invoice-title">INVOICE</div>
+                <div class="invoice-number">No. {{ $invoice->nomor_invoice }}</div>
+
+                <div class="company-info-section">
+                    <div class="company-details">
+                        <div class="company-name">PT. NAMA PERUSAHAAN ANDA</div>
+                        <div class="company-address">
+                            Jl. Alamat Perusahaan Lengkap<br>
+                            Kelurahan, Kecamatan, Kota<br>
+                            +62 XXX XXXX XXXX | +62 XXX XXXX XXXX<br>
+                            email@perusahaan.com
+                        </div>
                     </div>
-                </div>
-                <div class="invoice-title">
-                    <h1>INVOICE</h1>
-                    <div style="font-size: 14px; color: #666;">
-                        {{ $invoice->nomor_invoice }}
+                    <div class="logo-section">
+                        <div class="logo-container">
+                            <!-- Tempat untuk logo perusahaan -->
+                            <div style="font-size: 7px; text-align: center; color: #999;">
+                                LOGO<br>
+                                PERUSAHAAN
+                            </div>
+                        </div>
+                        <div class="logo-text">PT. NAMA PERUSAHAAN ANDA</div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Invoice & Customer Details -->
-        <div class="invoice-meta">
+            <!-- Invoice Details -->
             <div class="invoice-details">
-                <h3>Detail Invoice</h3>
-                <div class="detail-row">
-                    <span class="detail-label">Nomor Invoice:</span>
-                    <span class="detail-value">{{ $invoice->nomor_invoice }}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Tanggal:</span>
-                    <span class="detail-value">{{ $invoice->tanggal->format('d F Y') }}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Status:</span>
-                    <span class="detail-value">
-                        <span class="status {{ $invoice->status }}">
-                            {{ $invoice->status_text }}
-                        </span>
-                    </span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">PO Number:</span>
-                    <span class="detail-value">{{ $invoice->poCustomer->nomor_po ?? '-' }}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Dibuat Oleh:</span>
-                    <span class="detail-value">{{ $invoice->user->name ?? '-' }}</span>
-                </div>
-            </div>
+                <div class="details-section">
+                    <div class="details-left">
+                        <div class="detail-group">
+                            <div class="detail-row">
+                                <span class="detail-label">DATE</span>
+                                <span class="detail-colon">:</span>
+                                <span class="detail-value">{{ $invoice->tanggal->format('d F Y') }}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">PO Number</span>
+                                <span class="detail-colon">:</span>
+                                <span class="detail-value">{{ $invoice->poCustomer->nomor_po ?? '-' }}</span>
+                            </div>
+                        </div>
 
-            <div class="customer-details">
-                <h3>Detail Customer</h3>
-                @if($invoice->poCustomer && $invoice->poCustomer->customer)
-                <div class="detail-row">
-                    <span class="detail-label">Nama:</span>
-                    <span class="detail-value">{{ $invoice->poCustomer->customer->nama }}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Alamat:</span>
-                    <span class="detail-value">{{ $invoice->poCustomer->customer->alamat ?? '-' }}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Telp:</span>
-                    <span class="detail-value">{{ $invoice->poCustomer->customer->telepon ?? '-' }}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Email:</span>
-                    <span class="detail-value">{{ $invoice->poCustomer->customer->email ?? '-' }}</span>
-                </div>
-                @else
-                <div class="detail-row">
-                    <span class="detail-value" style="color: #dc2626;">Data customer tidak tersedia</span>
-                </div>
-                @endif
-            </div>
-        </div>
-
-        <!-- Items Table -->
-        <table class="items-table">
-            <thead>
-                <tr>
-                    <th style="width: 5%">#</th>
-                    <th style="width: 45%">Deskripsi</th>
-                    <th style="width: 10%" class="text-center">Qty</th>
-                    <th style="width: 15%" class="text-right">Harga Satuan</th>
-                    <th style="width: 25%" class="text-right">Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if($invoice->poCustomer && $invoice->poCustomer->details && $invoice->poCustomer->details->count() > 0)
-                    @foreach($invoice->poCustomer->details as $index => $detail)
-                    <tr>
-                        <td class="text-center">{{ $index + 1 }}</td>
-                        <td>{{ $detail->deskripsi }}</td>
-                        <td class="text-center">{{ number_format($detail->jumlah, 0, ',', '.') }}</td>
-                        <td class="text-right">Rp {{ number_format($detail->harga_satuan, 0, ',', '.') }}</td>
-                        <td class="text-right">Rp {{ number_format($detail->total, 0, ',', '.') }}</td>
-                    </tr>
-                    @endforeach
-                @else
-                    <tr>
-                        <td class="text-center">1</td>
-                        <td>Jasa/Barang sesuai PO {{ $invoice->poCustomer->nomor_po ?? '' }}</td>
-                        <td class="text-center">1</td>
-                        <td class="text-right">Rp {{ number_format($invoice->total_sebelum_pajak, 0, ',', '.') }}</td>
-                        <td class="text-right">Rp {{ number_format($invoice->total_sebelum_pajak, 0, ',', '.') }}</td>
-                    </tr>
-                @endif
-            </tbody>
-        </table>
-
-        <!-- Totals -->
-        <div class="totals">
-            <table class="totals-table">
-                <tr>
-                    <td class="total-label">Subtotal:</td>
-                    <td class="total-amount">Rp {{ number_format($invoice->total_sebelum_pajak, 0, ',', '.') }}</td>
-                </tr>
-                <tr>
-                    <td class="total-label">PPN 11%:</td>
-                    <td class="total-amount">Rp {{ number_format($invoice->total_pajak, 0, ',', '.') }}</td>
-                </tr>
-                <tr class="grand-total">
-                    <td class="total-label">GRAND TOTAL:</td>
-                    <td class="total-amount">Rp {{ number_format($invoice->grand_total, 0, ',', '.') }}</td>
-                </tr>
-            </table>
-        </div>
-
-        <!-- Notes -->
-        @if($invoice->keterangan)
-        <div class="notes">
-            <h4>Catatan:</h4>
-            <p>{{ $invoice->keterangan }}</p>
-        </div>
-        @endif
-
-        <!-- Payment Information -->
-        <div class="payment-info">
-            <h4>Informasi Pembayaran</h4>
-            @if($invoice->rekeningBank)
-            <div class="bank-details">
-                <div class="bank-item">
-                    <div class="bank-name">{{ $invoice->rekeningBank->nama_bank }}</div>
-                    <div>No. Rek: {{ $invoice->rekeningBank->nomor_rekening }}</div>
-                    <div>A.n: {{ $invoice->rekeningBank->nama_pemilik }}</div>
-                    @if($invoice->rekeningBank->kode_bank)
-                    <div>Kode Bank: {{ $invoice->rekeningBank->kode_bank }}</div>
-                    @endif
-                    @if($invoice->rekeningBank->keterangan)
-                    <div style="font-size: 11px; color: #666; margin-top: 5px;">
-                        {{ $invoice->rekeningBank->keterangan }}
+                        <div class="detail-group">
+                            <div class="detail-title">BILL TO</div>
+                            @if($invoice->poCustomer && $invoice->poCustomer->customer)
+                            <div class="detail-row">
+                                <span class="detail-label">Customer</span>
+                                <span class="detail-colon">:</span>
+                                <span class="detail-value">{{ $invoice->poCustomer->customer->nama }}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Address</span>
+                                <span class="detail-colon">:</span>
+                                <span class="detail-value">{{ $invoice->poCustomer->customer->alamat ?? '-' }}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Phone</span>
+                                <span class="detail-colon">:</span>
+                                <span class="detail-value">{{ $invoice->poCustomer->customer->telepon ?? '-' }}</span>
+                            </div>
+                            @else
+                            <div class="detail-row">
+                                <span class="detail-label">Customer</span>
+                                <span class="detail-colon">:</span>
+                                <span class="detail-value">-</span>
+                            </div>
+                            @endif
+                        </div>
                     </div>
+                    <div class="details-right">
+                        <div class="detail-group">
+                            <div class="detail-title">FOR</div>
+                            <div class="detail-row">
+                                <span class="detail-value">{{ $invoice->keterangan ?? 'Jasa Pekerjaan' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="items-section">
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th class="desc-col">Description ▼</th>
+                            <th class="qty-col">Qty ▼</th>
+                            <th class="price-col">Unit Price ▼</th>
+                            <th class="total-col">Total ▼</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if($invoice->poCustomer && $invoice->poCustomer->details && $invoice->poCustomer->details->count() > 0)
+                            @foreach($invoice->poCustomer->details as $detail)
+                            <tr>
+                                <td class="desc-col">{{ $detail->deskripsi }}</td>
+                                <td class="qty-col">{{ number_format($detail->jumlah, 0, ',', '.') }}</td>
+                                <td class="price-col">{{ number_format($detail->harga_satuan, 0, ',', '.') }}</td>
+                                <td class="total-col">{{ number_format($detail->total, 0, ',', '.') }}</td>
+                            </tr>
+                            @endforeach
+                        @else
+                            <tr>
+                                <td class="desc-col">Jasa/Barang sesuai PO {{ $invoice->poCustomer->nomor_po ?? '' }}</td>
+                                <td class="qty-col">1</td>
+                                <td class="price-col">{{ number_format($invoice->total_sebelum_pajak, 0, ',', '.') }}</td>
+                                <td class="total-col">{{ number_format($invoice->total_sebelum_pajak, 0, ',', '.') }}</td>
+                            </tr>
+                        @endif
+                    </tbody>
+                </table>
+
+                <!-- Totals -->
+                <div class="totals-section">
+                    <table class="totals-table">
+                        <tr>
+                            <td class="label-col">SUBTOTAL</td>
+                            <td class="amount-col">IDR {{ number_format($invoice->total_sebelum_pajak, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="label-col">TAX RATE 11%</td>
+                            <td class="amount-col">IDR{{ number_format($invoice->total_pajak, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="label-col">OTHER</td>
+                            <td class="amount-col">: ........................</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td class="label-col">TOTAL</td>
+                            <td class="amount-col">IDR{{ number_format($invoice->grand_total, 0, ',', '.') }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Payment Information -->
+            <div class="payment-section">
+                <div class="payment-info">
+                    <strong>Make all checks payable to PT. NAMA PERUSAHAAN ANDA</strong>
+                </div>
+
+                <div class="bank-info">
+                    @if($invoice->rekeningBank)
+                    <strong>Account No:</strong> {{ $invoice->rekeningBank->nomor_rekening }} {{ $invoice->rekeningBank->nama_pemilik }}<br>
+                    <strong>Account Bank:</strong> {{ $invoice->rekeningBank->nama_bank }}<br>
+                    <strong>Account Name:</strong> {{ $invoice->rekeningBank->nama_pemilik }}
+                    @else
+                    <strong>Account No:</strong> 2349524248 Bank Mega<br>
+                    <strong>Account Bank:</strong> Bank Mega<br>
+                    <strong>Account Name:</strong> PT. Nama Perusahaan Anda
                     @endif
                 </div>
-            </div>
-            @else
-            <div class="bank-details">
-                <div class="bank-item">
-                    <div class="bank-name">Bank Central Asia (BCA)</div>
-                    <div>No. Rek: 1234567890</div>
-                    <div>A.n: PT. Nama Perusahaan</div>
+
+                <div class="contact-info">
+                    <p>If you have any questions concerning this invoice, use the following contact information:</p>
+                    <p>+62 XXX XXXX XXXX/+62 XXX XXXX XXXX, sales-care@perusahaan.com</p>
+                </div>
+
+                <div class="footer">
+                    <p>THANK YOU FOR YOUR BUSINESS!</p>
+                </div>
+
+                <!-- Signature -->
+                <div class="signature-section">
+                    <div class="signature-block">
+                        <p>Best Regards,</p>
+                        <div class="signature-line"></div>
+                        <p><strong>{{ $invoice->user->name ?? 'PT. NAMA PERUSAHAAN ANDA' }}</strong></p>
+                    </div>
                 </div>
             </div>
-            @endif
-            <p style="margin-top: 15px; font-size: 11px; color: #666;">
-                Harap transfer sesuai dengan nominal yang tertera dan konfirmasi pembayaran ke email kami.
-            </p>
-        </div>
 
-        <!-- Footer -->
-        <div class="footer">
-            <p>Terima kasih atas kepercayaan Anda kepada kami.</p>
-            <p>Invoice ini dibuat secara otomatis pada {{ now()->format('d F Y, H:i') }} WIB</p>
+            <!-- Company Footer -->
+            <div class="company-footer">
+                PT. NAMA PERUSAHAAN ANDA
+            </div>
         </div>
     </div>
 </body>

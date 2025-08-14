@@ -69,7 +69,10 @@ class TransaksiKeuanganResource extends Resource
                         ->schema([
                             Forms\Components\Select::make('id_rekening')
                                 ->label('Bank Account')
-                                ->options(RekeningBank::all()->pluck('nama_bank', 'id'))
+                                ->options(function () {
+                                    $banks = RekeningBank::all();
+                                    return $banks->pluck('nama_bank', 'id');
+                                })
                                 ->searchable()
                                 ->required()
                                 ->getOptionLabelFromRecordUsing(fn (RekeningBank $record): string =>
@@ -318,44 +321,168 @@ class TransaksiKeuanganResource extends Resource
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+->bulkActions([
+    Tables\Actions\BulkActionGroup::make([
+        Tables\Actions\DeleteBulkAction::make(),
 
-                    BulkAction::make('export_excel')
-                        ->label('Export to Excel')
-                        ->icon('heroicon-o-document-arrow-down')
-                        ->color('success')
-                        ->action(function (Collection $records) {
-                            $fileName = 'financial-transactions-' . now()->format('Y-m-d-H-i-s') . '.xlsx';
-
-                            Notification::make()
-                                ->title('Export successful')
-                                ->body("File {$fileName} is being downloaded")
-                                ->success()
-                                ->send();
-
-                            return Excel::download(new TransaksiKeuanganExport($records), $fileName);
-                        }),
-                ]),
+        BulkAction::make('export_excel')
+    ->label('Export Selected to Excel')
+    ->icon('heroicon-o-document-arrow-down')
+    ->color('success')
+    ->form([
+        Forms\Components\Section::make('Export Options')
+            ->schema([
+                Forms\Components\Select::make('sort_by')
+                    ->label('Sort By')
+                    ->options([
+                        'tanggal_asc' => 'Date (Oldest First)',
+                        'tanggal_desc' => 'Date (Newest First)',
+                        'jumlah_asc' => 'Amount (Smallest First)',
+                        'jumlah_desc' => 'Amount (Largest First)',
+                    ])
+                    ->default('tanggal_asc'),
             ])
+    ])
+    ->action(function (Collection $records, array $data) {
+        // Sort records based on selection
+        switch ($data['sort_by']) {
+            case 'tanggal_desc':
+                $records = $records->sortByDesc('tanggal');
+                break;
+            case 'jumlah_asc':
+                $records = $records->sortBy('jumlah');
+                break;
+            case 'jumlah_desc':
+                $records = $records->sortByDesc('jumlah');
+                break;
+            default:
+                $records = $records->sortBy('tanggal');
+        }
+
+        $fileName = 'financial-transactions-selected-' . now()->format('Y-m-d-H-i-s') . '.xlsx';
+
+        Notification::make()
+            ->title('Export successful')
+            ->body("File {$fileName} is being downloaded with " . $records->count() . " transactions")
+            ->success()
+            ->send();
+
+        // Always include summary and use professional format
+        $exportOptions = [
+            'include_summary' => true,
+            'professional_format' => true,
+            'sort_by' => $data['sort_by']
+        ];
+
+        return Excel::download(
+            new TransaksiKeuanganExport($records, $exportOptions),
+            $fileName
+        );
+    }),
+    ]),
+])
             ->headerActions([
-                Tables\Actions\Action::make('export_all')
-                    ->label('Export All')
-                    ->icon('heroicon-o-document-arrow-down')
-                    ->color('success')
-                    ->action(function () {
-                        $fileName = 'all-financial-transactions-' . now()->format('Y-m-d-H-i-s') . '.xlsx';
+    Tables\Actions\Action::make('export_all')
+    ->label('Export All')
+    ->icon('heroicon-o-document-arrow-down')
+    ->color('success')
+    ->form([
+        Forms\Components\Section::make('Export Configuration')
+            ->schema([
+                Forms\Components\Grid::make(2)
+                    ->schema([
+                        Forms\Components\DatePicker::make('date_from')
+                            ->label('From Date')
+                            ->helperText('Leave empty to include all dates'),
 
-                        Notification::make()
-                            ->title('Export successful')
-                            ->body("File {$fileName} is being downloaded")
-                            ->success()
-                            ->send();
+                        Forms\Components\DatePicker::make('date_to')
+                            ->label('To Date')
+                            ->helperText('Leave empty to include all dates'),
+                    ]),
 
-                        return Excel::download(new TransaksiKeuanganExport(), $fileName);
-                    }),
-            ])
+                Forms\Components\Select::make('account_id')
+                    ->label('Bank Account')
+                    ->options(RekeningBank::all()->pluck('nama_bank', 'id'))
+                    ->searchable()
+                    ->placeholder('All Accounts')
+                    ->helperText('Filter by specific bank account'),
+
+                Forms\Components\Select::make('transaction_type')
+                    ->label('Transaction Type')
+                    ->options([
+                        'all' => 'All Transactions',
+                        'pemasukan' => 'Income Only',
+                        'pengeluaran' => 'Expense Only',
+                    ])
+                    ->default('all'),
+            ]),
+    ])
+    ->action(function (array $data) {
+        // Build query based on filters
+        $query = TransaksiKeuangan::with(['rekening', 'poSupplier.supplier'])
+            ->orderBy('tanggal', 'asc')
+            ->orderBy('id', 'asc');
+
+        // Apply date filters
+        if (!empty($data['date_from'])) {
+            $query->whereDate('tanggal', '>=', $data['date_from']);
+        }
+
+        if (!empty($data['date_to'])) {
+            $query->whereDate('tanggal', '<=', $data['date_to']);
+        }
+
+        // Apply account filter
+        if (!empty($data['account_id'])) {
+            $query->where('id_rekening', $data['account_id']);
+        }
+
+        // Apply transaction type filter
+        if ($data['transaction_type'] !== 'all') {
+            $query->where('jenis', $data['transaction_type']);
+        }
+
+        $records = $query->get();
+
+        // Generate filename with filters info
+        $filenameParts = ['financial-transactions'];
+
+        if (!empty($data['date_from']) || !empty($data['date_to'])) {
+            $from = $data['date_from'] ? \Carbon\Carbon::parse($data['date_from'])->format('Y-m-d') : 'start';
+            $to = $data['date_to'] ? \Carbon\Carbon::parse($data['date_to'])->format('Y-m-d') : 'end';
+            $filenameParts[] = "from-{$from}-to-{$to}";
+        }
+
+        if (!empty($data['account_id'])) {
+            $account = RekeningBank::find($data['account_id']);
+            if ($account) {
+                $filenameParts[] = 'account-' . str_replace(' ', '-', strtolower($account->nama_bank));
+            }
+        }
+
+        if ($data['transaction_type'] !== 'all') {
+            $filenameParts[] = $data['transaction_type'];
+        }
+
+        $filenameParts[] = now()->format('Y-m-d-H-i-s');
+        $fileName = implode('-', $filenameParts) . '.xlsx';
+
+        Notification::make()
+            ->title('Export successful')
+            ->body("File {$fileName} is being downloaded with {$records->count()} transactions")
+            ->success()
+            ->duration(5000)
+            ->send();
+
+        // Always include summary and use professional format
+        $exportOptions = array_merge($data, [
+            'include_summary' => true,
+            'professional_format' => true
+        ]);
+
+        return Excel::download(new TransaksiKeuanganExport($records, $exportOptions), $fileName);
+    }),
+])
             ->defaultSort('tanggal', 'desc')
             ->poll('60s'); // Auto refresh every 60 seconds
     }

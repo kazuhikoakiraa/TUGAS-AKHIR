@@ -13,9 +13,9 @@ enum PoStatus: string
     {
         return match($this) {
             self::DRAFT => 'Draft',
-            self::PENDING => 'Menunggu Persetujuan',
-            self::APPROVED => 'Disetujui',
-            self::REJECTED => 'Ditolak',
+            self::PENDING => 'Pending',
+            self::APPROVED => 'Approved',
+            self::REJECTED => 'Rejected',
         };
     }
 

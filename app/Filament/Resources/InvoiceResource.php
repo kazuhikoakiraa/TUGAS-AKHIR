@@ -458,13 +458,14 @@ class InvoiceResource extends Resource
         }
     }
 
-    public static function getNavigationBadge(): ?string
-    {
-        return static::getModel()::where('status', 'draft')->count() ?: null;
-    }
+  public static function getNavigationBadge(): ?string
+{
+    $count = static::getModel()::where('status', 'draft')->count();
+    return (string) $count; // Selalu return string dari count, termasuk "0"
+}
 
-    public static function getNavigationBadgeColor(): ?string
-    {
-        return static::getNavigationBadge() >= 0 ? 'primary' : null;
-    }
+public static function getNavigationBadgeColor(): ?string
+{
+    return static::getNavigationBadge() !== null ? 'primary' : null;
+}
 }

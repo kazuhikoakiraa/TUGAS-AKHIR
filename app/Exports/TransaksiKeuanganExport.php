@@ -3,9 +3,8 @@
 namespace App\Exports;
 
 use App\Models\TransaksiKeuangan;
-use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
+use App\Models\RekeningBank;
+use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
@@ -15,12 +14,11 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use Illuminate\Database\Eloquent\Collection;
 
 class TransaksiKeuanganExport implements
-    FromCollection,
-    WithHeadings,
-    WithMapping,
+    FromArray,
     WithStyles,
     WithTitle,
     WithColumnWidths,
@@ -29,117 +27,179 @@ class TransaksiKeuanganExport implements
     private $collection;
     private $totalPemasukan = 0;
     private $totalPengeluaran = 0;
+    private $dateRange = '';
+    private $accountFilter = null;
+    private $filters = [];
 
-    public function __construct($collection = null)
+    public function __construct($collection = null, $filters = [])
     {
-        $this->collection = $collection ?? TransaksiKeuangan::with(['rekening', 'poSupplier.supplier'])->orderBy('tanggal', 'desc')->get();
+        $this->filters = $filters;
+
+        if ($collection instanceof Collection) {
+            $this->collection = $collection;
+        } else {
+            $this->collection = TransaksiKeuangan::with(['rekening', 'poSupplier.supplier'])
+                ->orderBy('tanggal', 'asc')
+                ->orderBy('id', 'asc')
+                ->get();
+        }
 
         // Hitung total
         $this->totalPemasukan = $this->collection->where('jenis', 'pemasukan')->sum('jumlah');
         $this->totalPengeluaran = $this->collection->where('jenis', 'pengeluaran')->sum('jumlah');
-    }
 
-    public function collection()
-    {
-        return $this->collection;
-    }
+        // Set date range
+        if (!$this->collection->isEmpty()) {
+            $startDate = $this->collection->min('tanggal');
+            $endDate = $this->collection->max('tanggal');
 
-    public function headings(): array
-    {
-        return [
-            'No',
-            'Tanggal',
-            'Jenis Transaksi',
-            'Bank',
-            'Nomor Rekening',
-            'Keterangan',
-            'Referensi PO/Invoice',
-            'Debit (Pengeluaran)',
-            'Kredit (Pemasukan)',
-            'Saldo'
-        ];
-    }
+            // Handle date formatting
+            if (is_string($startDate)) {
+                $startDate = \Carbon\Carbon::parse($startDate);
+            }
+            if (is_string($endDate)) {
+                $endDate = \Carbon\Carbon::parse($endDate);
+            }
 
-    public function map($transaksi): array
-    {
-        static $no = 1;
-        static $saldo = 0;
-
-        // Hitung saldo running
-        if ($transaksi->jenis === 'pemasukan') {
-            $saldo += $transaksi->jumlah;
-            $debit = '';
-            $kredit = number_format($transaksi->jumlah, 2, ',', '.');
+            $this->dateRange = $startDate->format('d/m/Y') . ' - ' . $endDate->format('d/m/Y');
         } else {
-            $saldo -= $transaksi->jumlah;
-            $debit = number_format($transaksi->jumlah, 2, ',', '.');
-            $kredit = '';
+            $this->dateRange = 'No Data';
         }
 
-        // Tentukan referensi
-        $referensi = '';
+        // Set account filter info
+        if (isset($filters['account_id']) && $filters['account_id']) {
+            $account = RekeningBank::find($filters['account_id']);
+            $this->accountFilter = $account ? $account->nama_bank . ' - ' . $account->nomor_rekening : null;
+        }
+    }
+
+    public function array(): array
+    {
+        $data = [];
+
+        // Company header
+        $data[] = ['PT. Sentra Alam Anandana', '', '', '', '', '', ''];
+        $data[] = ['BUKU BESAR TRANSAKSI KEUANGAN', '', '', '', '', '', ''];
+        $data[] = ['Periode: ' . $this->dateRange, '', '', '', '', '', ''];
+
+        if ($this->accountFilter) {
+            $data[] = ['Rekening: ' . $this->accountFilter, '', '', '', '', '', ''];
+        }
+
+        $data[] = ['', '', '', '', '', '', '']; // Empty row
+
+        // Table headers
+        $data[] = ['TGL', 'KODE', 'KETERANGAN', 'REF', 'DEBIT', 'KREDIT', 'SALDO'];
+
+        // Data rows
+        $saldo = 0;
+        foreach ($this->collection as $transaksi) {
+            // Pastikan tanggal adalah Carbon instance
+            $tanggal = $transaksi->tanggal;
+            if (is_string($tanggal)) {
+                $tanggal = \Carbon\Carbon::parse($tanggal);
+            }
+
+            // Hitung saldo running
+            if ($transaksi->jenis === 'pemasukan') {
+                $saldo += $transaksi->jumlah;
+                $debit = '';
+                $kredit = $transaksi->jumlah;
+            } else {
+                $saldo -= $transaksi->jumlah;
+                $debit = $transaksi->jumlah;
+                $kredit = '';
+            }
+
+            // Generate kode transaksi
+            $kode = $this->generateTransactionCode($transaksi);
+
+            // Tentukan referensi
+            $referensi = $this->getReferensiInfo($transaksi);
+
+            $data[] = [
+                $tanggal->format('d/m/Y'),
+                $kode,
+                $transaksi->keterangan ?? '',
+                $referensi,
+                $debit,
+                $kredit,
+                $saldo
+            ];
+        }
+
+        // Empty rows before summary
+        $data[] = ['', '', '', '', '', '', ''];
+        $data[] = ['', '', '', '', '', '', ''];
+
+        // Summary section
+        $data[] = ['RINGKASAN TRANSAKSI', '', '', '', '', '', ''];
+        $data[] = ['', '', '', '', '', '', ''];
+        $data[] = ['Total Pemasukan (Credit):', '', $this->totalPemasukan, '', '', '', ''];
+        $data[] = ['Total Pengeluaran (Debit):', '', $this->totalPengeluaran, '', '', '', ''];
+        $data[] = ['Saldo Bersih:', '', $this->totalPemasukan - $this->totalPengeluaran, '', '', '', ''];
+
+        // Footer
+        $data[] = ['', '', '', '', '', '', ''];
+        $data[] = ['', '', '', '', '', '', ''];
+        $data[] = ['Dibuat pada: ' . now()->format('d/m/Y H:i:s'), '', '', '', 'Total Transaksi: ' . $this->collection->count(), '', ''];
+        $data[] = ['', '', '', '', '', '', ''];
+        $data[] = ['', '', '', '', '', '', ''];
+        $data[] = ['Dibuat oleh,', '', '', '', 'Disetujui oleh,', '', ''];
+        $data[] = ['', '', '', '', '', '', ''];
+        $data[] = ['', '', '', '', '', '', ''];
+        $data[] = ['', '', '', '', '', '', ''];
+        $data[] = ['(___________________)', '', '', '', '(___________________)', '', ''];
+        $data[] = ['Finance Staff', '', '', '', 'Finance Manager', '', ''];
+
+        return $data;
+    }
+
+    private function generateTransactionCode($transaksi): string
+    {
+        $prefix = $transaksi->jenis === 'pemasukan' ? 'IN' : 'OUT';
+        $tanggal = $transaksi->tanggal;
+        if (is_string($tanggal)) {
+            $tanggal = \Carbon\Carbon::parse($tanggal);
+        }
+        return $prefix . '-' . $tanggal->format('Ymd') . '-' . str_pad($transaksi->id, 4, '0', STR_PAD_LEFT);
+    }
+
+    private function getReferensiInfo($transaksi): string
+    {
         if ($transaksi->poSupplier) {
-            $referensi = $transaksi->poSupplier->nomor_po . ' (' . $transaksi->poSupplier->supplier->nama . ')';
-        } elseif ($transaksi->invoice) {
-            $customerName = $transaksi->invoice->poCustomer?->customer?->nama ?? 'Unknown';
-            $referensi = $transaksi->invoice->nomor_invoice . ' (' . $customerName . ')';
+            return 'PO-' . $transaksi->poSupplier->nomor_po;
         }
 
-        return [
-            $no++,
-            $transaksi->tanggal->format('d/m/Y'),
-            $transaksi->jenis === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran',
-            $transaksi->rekening->nama_bank,
-            $transaksi->rekening->nomor_rekening,
-            $transaksi->keterangan,
-            $referensi,
-            $debit,
-            $kredit,
-            number_format($saldo, 2, ',', '.')
-        ];
+        if ($transaksi->referensi_type === 'invoice' && $transaksi->referensi_id) {
+            $invoice = \App\Models\Invoice::find($transaksi->referensi_id);
+            return $invoice ? 'INV-' . $invoice->nomor_invoice : '';
+        }
+
+        return 'MANUAL';
     }
 
     public function styles(Worksheet $sheet)
     {
-        return [
-            // Header styling
-            1 => [
-                'font' => [
-                    'bold' => true,
-                    'size' => 12,
-                    'color' => ['rgb' => 'FFFFFF']
-                ],
-                'fill' => [
-                    'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => '4F46E5']
-                ],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_CENTER,
-                    'vertical' => Alignment::VERTICAL_CENTER
-                ]
-            ],
-        ];
+        return [];
     }
 
     public function columnWidths(): array
     {
         return [
-            'A' => 5,   // No
-            'B' => 12,  // Tanggal
-            'C' => 15,  // Jenis
-            'D' => 15,  // Bank
-            'E' => 18,  // No Rekening
-            'F' => 30,  // Keterangan
-            'G' => 25,  // Referensi
-            'H' => 18,  // Debit
-            'I' => 18,  // Kredit
-            'J' => 18,  // Saldo
+            'A' => 12,  // Tanggal
+            'B' => 20,  // Kode
+            'C' => 40,  // Keterangan
+            'D' => 15,  // Referensi
+            'E' => 18,  // Debit
+            'F' => 18,  // Kredit
+            'G' => 18,  // Saldo
         ];
     }
 
     public function title(): string
     {
-        return 'Laporan Transaksi Keuangan';
+        return 'Laporan Keuangan';
     }
 
     public function registerEvents(): array
@@ -147,73 +207,145 @@ class TransaksiKeuanganExport implements
         return [
             AfterSheet::class => function(AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                $lastRow = $sheet->getHighestRow();
-
-                // Add border to all data
-                $sheet->getStyle("A1:J{$lastRow}")
-                    ->getBorders()
-                    ->getAllBorders()
-                    ->setBorderStyle(Border::BORDER_THIN);
-
-                // Add summary section
-                $summaryStartRow = $lastRow + 3;
-
-                // Header summary
-                $sheet->setCellValue("A{$summaryStartRow}", 'RINGKASAN TRANSAKSI');
-                $sheet->mergeCells("A{$summaryStartRow}:D{$summaryStartRow}");
-                $sheet->getStyle("A{$summaryStartRow}:D{$summaryStartRow}")
-                    ->getFont()
-                    ->setBold(true)
-                    ->setSize(14);
-
-                $sheet->getStyle("A{$summaryStartRow}:D{$summaryStartRow}")
-                    ->getFill()
-                    ->setFillType(Fill::FILL_SOLID)
-                    ->getStartColor()
-                    ->setRGB('E5E7EB');
-
-                // Detail summary
-                $detailStartRow = $summaryStartRow + 2;
-
-                $sheet->setCellValue("A{$detailStartRow}", 'Total Pemasukan:');
-                $sheet->setCellValue("B{$detailStartRow}", 'Rp ' . number_format($this->totalPemasukan, 2, ',', '.'));
-
-                $sheet->setCellValue("A" . ($detailStartRow + 1), 'Total Pengeluaran:');
-                $sheet->setCellValue("B" . ($detailStartRow + 1), 'Rp ' . number_format($this->totalPengeluaran, 2, ',', '.'));
-
-                $sheet->setCellValue("A" . ($detailStartRow + 2), 'Keuntungan/Rugi:');
-                $sheet->setCellValue("B" . ($detailStartRow + 2), 'Rp ' . number_format($this->totalPemasukan - $this->totalPengeluaran, 2, ',', '.'));
-
-                // Style summary
-                $summaryRange = "A{$detailStartRow}:B" . ($detailStartRow + 2);
-                $sheet->getStyle($summaryRange)
-                    ->getBorders()
-                    ->getAllBorders()
-                    ->setBorderStyle(Border::BORDER_THIN);
-
-                $sheet->getStyle("A{$detailStartRow}:A" . ($detailStartRow + 2))
-                    ->getFont()
-                    ->setBold(true);
-
-                // Color keuntungan/rugi
-                $keuntungan = $this->totalPemasukan - $this->totalPengeluaran;
-                $sheet->getStyle("B" . ($detailStartRow + 2))
-                    ->getFont()
-                    ->setBold(true)
-                    ->getColor()
-                    ->setRGB($keuntungan >= 0 ? '059669' : 'DC2626');
-
-                // Add metadata
-                $metaStartRow = $detailStartRow + 5;
-                $sheet->setCellValue("A{$metaStartRow}", 'Diekspor pada: ' . now()->format('d/m/Y H:i:s'));
-                $sheet->setCellValue("A" . ($metaStartRow + 1), 'Periode: ' . $this->collection->min('tanggal')?->format('d/m/Y') . ' - ' . $this->collection->max('tanggal')?->format('d/m/Y'));
-                $sheet->setCellValue("A" . ($metaStartRow + 2), 'Total Data: ' . $this->collection->count() . ' transaksi');
-
-                // Auto size columns
-                foreach (range('A', 'J') as $column) {
-                    $sheet->getColumnDimension($column)->setAutoSize(false);
-                }
+                $this->styleSheet($sheet);
             },
         ];
+    }
+
+    private function styleSheet($sheet)
+    {
+        $highestRow = $sheet->getHighestRow();
+
+        // Determine header row
+        $headerRow = $this->accountFilter ? 6 : 5;
+        $firstDataRow = $headerRow + 1;
+        $lastDataRow = $firstDataRow + $this->collection->count() - 1;
+
+        // Company header styling
+        $sheet->mergeCells('A1:G1');
+        $sheet->mergeCells('A2:G2');
+        $sheet->mergeCells('A3:G3');
+        if ($this->accountFilter) {
+            $sheet->mergeCells('A4:G4');
+        }
+
+        $sheet->getStyle('A1:G4')->applyFromArray([
+            'font' => ['bold' => true],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+        ]);
+
+        $sheet->getStyle('A1')->getFont()->setSize(16);
+        $sheet->getStyle('A2')->getFont()->setSize(14);
+
+        // Table header styling
+        $sheet->getStyle("A{$headerRow}:G{$headerRow}")->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '374151']
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ],
+            'borders' => [
+                'allBorders' => ['borderStyle' => Border::BORDER_THIN]
+            ]
+        ]);
+
+        // Data rows styling (only if we have data)
+        if ($this->collection->count() > 0) {
+            $sheet->getStyle("A{$firstDataRow}:G{$lastDataRow}")->applyFromArray([
+                'borders' => [
+                    'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'CCCCCC']]
+                ]
+            ]);
+
+            // Date and code columns center alignment
+            $sheet->getStyle("A{$firstDataRow}:A{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("B{$firstDataRow}:B{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("D{$firstDataRow}:D{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            // Number formatting for currency columns
+            $sheet->getStyle("E{$firstDataRow}:G{$lastDataRow}")->applyFromArray([
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT],
+                'numberFormat' => ['formatCode' => '#,##0.00']
+            ]);
+
+            // Alternate row colors
+            for ($row = $firstDataRow; $row <= $lastDataRow; $row++) {
+                if (($row - $firstDataRow) % 2 == 1) {
+                    $sheet->getStyle("A{$row}:G{$row}")->applyFromArray([
+                        'fill' => [
+                            'fillType' => Fill::FILL_SOLID,
+                            'startColor' => ['rgb' => 'F9FAFB']
+                        ]
+                    ]);
+                }
+            }
+
+            // Highlight saldo colors
+            for ($row = $firstDataRow; $row <= $lastDataRow; $row++) {
+                $saldoValue = $sheet->getCell("G{$row}")->getValue();
+                if (is_numeric($saldoValue)) {
+                    $color = $saldoValue >= 0 ? '10B981' : 'EF4444';
+                    $sheet->getStyle("G{$row}")->getFont()->getColor()->setRGB($color);
+                    $sheet->getStyle("G{$row}")->getFont()->setBold(true);
+                }
+            }
+        }
+
+        // Summary section styling
+        $summaryStartRow = $lastDataRow + 3;
+        $sheet->mergeCells("A{$summaryStartRow}:G{$summaryStartRow}");
+        $sheet->getStyle("A{$summaryStartRow}:G{$summaryStartRow}")->applyFromArray([
+            'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '1F2937']
+            ],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            'borders' => [
+                'allBorders' => ['borderStyle' => Border::BORDER_THIN]
+            ]
+        ]);
+
+        // Summary details styling
+        $summaryDetailStart = $summaryStartRow + 2;
+        for ($i = 0; $i < 3; $i++) {
+            $row = $summaryDetailStart + $i;
+            $sheet->mergeCells("A{$row}:B{$row}");
+            $sheet->getStyle("A{$row}")->getFont()->setBold(true);
+            $sheet->getStyle("C{$row}")->applyFromArray([
+                'font' => ['bold' => true],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT],
+                'numberFormat' => ['formatCode' => '#,##0.00']
+            ]);
+
+            // Color for amounts
+            $value = $sheet->getCell("C{$row}")->getValue();
+            if (is_numeric($value)) {
+                $color = $value >= 0 ? '10B981' : 'EF4444';
+                $sheet->getStyle("C{$row}")->getFont()->getColor()->setRGB($color);
+            }
+
+            $sheet->getStyle("A{$row}:G{$row}")->applyFromArray([
+                'borders' => [
+                    'allBorders' => ['borderStyle' => Border::BORDER_THIN]
+                ]
+            ]);
+        }
+
+        // Footer styling
+        $footerRow = $highestRow - 7;
+        $sheet->getStyle("A{$footerRow}")->getFont()->setSize(10)->setItalic(true);
+        $sheet->getStyle("E{$footerRow}")->applyFromArray([
+            'font' => ['size' => 10, 'italic' => true],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT]
+        ]);
+
+        // Signature styling
+        $signatureRow = $highestRow - 5;
+        $sheet->getStyle("A{$signatureRow}:G" . ($highestRow))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     }
 }

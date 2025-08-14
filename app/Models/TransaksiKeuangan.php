@@ -22,6 +22,8 @@ class TransaksiKeuangan extends Model
         'jenis',
         'jumlah',
         'keterangan',
+        'referensi_type',
+        'referensi_id',
     ];
 
     protected $casts = [
@@ -41,16 +43,22 @@ class TransaksiKeuangan extends Model
     }
 
     /**
-     * Method untuk mendapatkan invoice terkait (bukan relationship)
-     * Karena tidak ada foreign key langsung, kita gunakan pattern matching
+     * Relationship untuk invoice menggunakan referensi system
      */
-    public function getInvoiceAttribute()
+    public function invoice(): ?Invoice
     {
-        // Ekstrak nomor invoice dari keterangan jika ada
-        if ($this->jenis === 'pemasukan' && preg_match('/Invoice (INV-\d{8}-\d{4})/', $this->keterangan, $matches)) {
-            return Invoice::where('nomor_invoice', $matches[1])->first();
+        if ($this->referensi_type === 'invoice' && $this->referensi_id) {
+            return Invoice::find($this->referensi_id);
         }
         return null;
+    }
+
+    /**
+     * Accessor untuk mendapatkan invoice (backward compatibility)
+     */
+    public function getInvoiceAttribute(): ?Invoice
+    {
+        return $this->invoice();
     }
 
     // Scopes untuk filter jenis transaksi
@@ -95,6 +103,13 @@ class TransaksiKeuangan extends Model
         return $query->where('id_rekening', $rekeningId);
     }
 
+    // Scope untuk filter berdasarkan referensi
+    public function scopeByReferensi(Builder $query, string $type, $id): Builder
+    {
+        return $query->where('referensi_type', $type)
+                    ->where('referensi_id', $id);
+    }
+
     // Accessor untuk format jumlah
     protected function formattedJumlah(): Attribute
     {
@@ -130,14 +145,18 @@ class TransaksiKeuangan extends Model
     // Method untuk mendapatkan referensi lengkap
     public function getReferensiLengkap(): ?string
     {
+        // Untuk PO Supplier
         if ($this->poSupplier) {
             return "PO Supplier: {$this->poSupplier->nomor_po} - {$this->poSupplier->supplier->nama}";
         }
 
-        $invoice = $this->invoice; // Menggunakan accessor
-        if ($invoice) {
-            $customerName = $invoice->poCustomer?->customer?->nama ?? 'Customer tidak ditemukan';
-            return "Invoice: {$invoice->nomor_invoice} - {$customerName}";
+        // Untuk Invoice menggunakan referensi system
+        if ($this->referensi_type === 'invoice' && $this->referensi_id) {
+            $invoice = Invoice::find($this->referensi_id);
+            if ($invoice) {
+                $customerName = $invoice->poCustomer?->customer?->nama ?? 'Customer tidak ditemukan';
+                return "Invoice: {$invoice->nomor_invoice} - {$customerName}";
+            }
         }
 
         return null;
@@ -185,6 +204,50 @@ class TransaksiKeuangan extends Model
         return $saldo;
     }
 
+    // Static method untuk membuat transaksi dari Invoice
+    public static function createFromInvoice(Invoice $invoice): self
+    {
+        // Get default bank account atau dari invoice jika ada
+        $account = $invoice->rekeningBank ?? RekeningBank::first();
+
+        if (!$account) {
+            throw new \Exception('No bank account available to record transaction');
+        }
+
+        $customerName = $invoice->poCustomer?->customer?->nama ?? 'Customer tidak ditemukan';
+
+        return self::create([
+            'id_rekening' => $account->id,
+            'tanggal' => $invoice->tanggal,
+            'jenis' => 'pemasukan',
+            'jumlah' => $invoice->grand_total,
+            'keterangan' => "Payment for Invoice {$invoice->nomor_invoice} - {$customerName}",
+            'referensi_type' => 'invoice',
+            'referensi_id' => $invoice->id,
+        ]);
+    }
+
+    // Static method untuk membuat transaksi dari PO Supplier
+    public static function createFromPoSupplier(PoSupplier $poSupplier): self
+    {
+        $account = RekeningBank::first();
+
+        if (!$account) {
+            throw new \Exception('No bank account available to record transaction');
+        }
+
+        return self::create([
+            'id_po_supplier' => $poSupplier->id,
+            'id_rekening' => $account->id,
+            'tanggal' => $poSupplier->tanggal_po,
+            'jenis' => 'pengeluaran',
+            'jumlah' => $poSupplier->total,
+            'keterangan' => "Payment for Supplier PO {$poSupplier->nomor_po} - {$poSupplier->supplier->nama}",
+            'referensi_type' => 'po_supplier',
+            'referensi_id' => $poSupplier->id,
+        ]);
+    }
+
     // Boot method untuk validasi dan logging
     protected static function boot()
     {
@@ -207,7 +270,7 @@ class TransaksiKeuangan extends Model
                 'causer_id' => optional(\Illuminate\Support\Facades\Auth::user())->id,
                 'causer_type' => \Illuminate\Support\Facades\Auth::user() ? get_class(\Illuminate\Support\Facades\Auth::user()) : null,
                 'properties' => json_encode($transaksi->toArray()),
-                'event' => 'created', // Tambahkan field event
+                'event' => 'created',
             ]);
         });
 
@@ -221,7 +284,7 @@ class TransaksiKeuangan extends Model
                 'causer_id' => optional(\Illuminate\Support\Facades\Auth::user())->id,
                 'causer_type' => \Illuminate\Support\Facades\Auth::user() ? get_class(\Illuminate\Support\Facades\Auth::user()) : null,
                 'properties' => json_encode($transaksi->toArray()),
-                'event' => 'deleted', // Tambahkan field event
+                'event' => 'deleted',
             ]);
         });
     }

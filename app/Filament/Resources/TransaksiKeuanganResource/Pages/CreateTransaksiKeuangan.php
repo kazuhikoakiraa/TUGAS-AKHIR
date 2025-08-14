@@ -31,14 +31,34 @@ class CreateTransaksiKeuangan extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // If expense type and has id_po_supplier, remove invoice_id
+        // Clean up data based on transaction type
         if ($data['jenis'] === 'pengeluaran') {
-            unset($data['invoice_id']);
+            // For expense, remove invoice reference if exists
+            unset($data['invoice_reference']);
+
+            // If has PO Supplier, set referensi accordingly
+            if (!empty($data['id_po_supplier'])) {
+                $data['referensi_type'] = 'po_supplier';
+                $data['referensi_id'] = $data['id_po_supplier'];
+            }
         }
 
-        // If income type and has invoice_id, remove id_po_supplier
         if ($data['jenis'] === 'pemasukan') {
+            // For income, remove PO supplier reference
             unset($data['id_po_supplier']);
+
+            // Handle invoice reference from custom field
+            if (!empty($data['invoice_reference'])) {
+                $data['referensi_type'] = 'invoice';
+                $data['referensi_id'] = $data['invoice_reference'];
+            }
+            unset($data['invoice_reference']); // Remove the temporary field
+        }
+
+        // Set manual type if no reference
+        if (empty($data['referensi_type'])) {
+            $data['referensi_type'] = 'manual';
+            $data['referensi_id'] = null;
         }
 
         return $data;
@@ -46,12 +66,35 @@ class CreateTransaksiKeuangan extends CreateRecord
 
     protected function afterCreate(): void
     {
-        // Update account balance or other additional logic
         $record = $this->record;
 
-        // Example: Log activity or trigger other events
+        // Log activity
         activity()
             ->causedBy(Auth::user())
-            ->log("Transaction {$record->jenis} of Rp " . number_format($record->jumlah, 0, ',', '.') . " successfully recorded");
+            ->performedOn($record)
+            ->withProperties([
+                'jenis' => $record->jenis,
+                'jumlah' => $record->jumlah,
+                'referensi_type' => $record->referensi_type,
+                'referensi_id' => $record->referensi_id,
+            ])
+            ->log("Manual transaction {$record->jenis} of Rp " . number_format($record->jumlah, 0, ',', '.') . " successfully recorded");
+
+        // Additional notification based on reference type
+        if ($record->referensi_type === 'invoice') {
+            Notification::make()
+                ->info()
+                ->title('Invoice Transaction Recorded')
+                ->body("Income transaction linked to invoice has been recorded.")
+                ->duration(3000)
+                ->send();
+        } elseif ($record->referensi_type === 'po_supplier') {
+            Notification::make()
+                ->info()
+                ->title('PO Supplier Transaction Recorded')
+                ->body("Expense transaction linked to PO Supplier has been recorded.")
+                ->duration(3000)
+                ->send();
+        }
     }
 }

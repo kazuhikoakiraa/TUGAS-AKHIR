@@ -43,16 +43,47 @@ class EditTransaksiKeuangan extends EditRecord
             ->duration(5000);
     }
 
-    protected function mutateFormDataBeforeSave(array $data): array
+    protected function mutateFormDataBeforeFill(array $data): array
     {
-        // If expense type and has id_po_supplier, remove invoice_id
-        if ($data['jenis'] === 'pengeluaran') {
-            unset($data['invoice_id']);
+        // For editing, we need to populate the invoice_reference field
+        // if this transaction has an invoice reference
+        if ($data['referensi_type'] === 'invoice' && $data['referensi_id']) {
+            $data['invoice_reference'] = $data['referensi_id'];
         }
 
-        // If income type and has invoice_id, remove id_po_supplier
+        return $data;
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        // Clean up data based on transaction type
+        if ($data['jenis'] === 'pengeluaran') {
+            // For expense, remove invoice reference if exists
+            unset($data['invoice_reference']);
+
+            // If has PO Supplier, set referensi accordingly
+            if (!empty($data['id_po_supplier'])) {
+                $data['referensi_type'] = 'po_supplier';
+                $data['referensi_id'] = $data['id_po_supplier'];
+            } else {
+                $data['referensi_type'] = 'manual';
+                $data['referensi_id'] = null;
+            }
+        }
+
         if ($data['jenis'] === 'pemasukan') {
+            // For income, remove PO supplier reference
             unset($data['id_po_supplier']);
+
+            // Handle invoice reference from custom field
+            if (!empty($data['invoice_reference'])) {
+                $data['referensi_type'] = 'invoice';
+                $data['referensi_id'] = $data['invoice_reference'];
+            } else {
+                $data['referensi_type'] = 'manual';
+                $data['referensi_id'] = null;
+            }
+            unset($data['invoice_reference']); // Remove the temporary field
         }
 
         return $data;
@@ -66,6 +97,13 @@ class EditTransaksiKeuangan extends EditRecord
         activity()
             ->performedOn($record)
             ->causedBy(filament()->auth()->user())
+            ->withProperties([
+                'jenis' => $record->jenis,
+                'jumlah' => $record->jumlah,
+                'referensi_type' => $record->referensi_type,
+                'referensi_id' => $record->referensi_id,
+                'changes' => $record->getChanges(),
+            ])
             ->log("Transaction {$record->jenis} of Rp " . number_format($record->jumlah, 0, ',', '.') . " successfully updated");
     }
 }

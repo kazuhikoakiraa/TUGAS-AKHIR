@@ -17,16 +17,6 @@ class TransaksiKeuanganObserver
     public static function handlePoSupplierApproved(PoSupplier $poSupplier)
     {
         try {
-            // Get default bank account or first account
-            $account = RekeningBank::first();
-
-            if (!$account) {
-                Log::warning('No bank account available to record PO Supplier transaction', [
-                    'po_supplier_id' => $poSupplier->id
-                ]);
-                return;
-            }
-
             // Check if transaction has already been recorded
             $existingTransaction = TransaksiKeuangan::where('id_po_supplier', $poSupplier->id)->first();
 
@@ -38,15 +28,8 @@ class TransaksiKeuanganObserver
                 return;
             }
 
-            // Create expense transaction
-            TransaksiKeuangan::create([
-                'id_po_supplier' => $poSupplier->id,
-                'id_rekening' => $account->id,
-                'tanggal' => $poSupplier->tanggal_po,
-                'jenis' => 'pengeluaran',
-                'jumlah' => $poSupplier->total,
-                'keterangan' => "Payment for Supplier PO {$poSupplier->nomor_po} - {$poSupplier->supplier->nama}"
-            ]);
+            // Create expense transaction using model method
+            TransaksiKeuangan::createFromPoSupplier($poSupplier);
 
             Log::info('Expense transaction successfully recorded for PO Supplier', [
                 'po_supplier_id' => $poSupplier->id,
@@ -56,7 +39,8 @@ class TransaksiKeuanganObserver
         } catch (\Exception $e) {
             Log::error('Failed to record transaction for PO Supplier', [
                 'po_supplier_id' => $poSupplier->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
         }
     }
@@ -67,51 +51,105 @@ class TransaksiKeuanganObserver
     public static function handleInvoicePaid(Invoice $invoice)
     {
         try {
-            // Use bank account selected in invoice or default
-            $account = $invoice->rekeningBank ?? RekeningBank::first();
-
-            if (!$account) {
-                Log::warning('No bank account available to record Invoice transaction', [
-                    'invoice_id' => $invoice->id
-                ]);
-                return;
-            }
-
-            // Check if transaction has already been recorded
-            $existingTransaction = TransaksiKeuangan::whereHas('invoice', function ($query) use ($invoice) {
-                $query->where('id', $invoice->id);
-            })->first();
+            // Check if transaction has already been recorded using referensi system
+            $existingTransaction = TransaksiKeuangan::where('referensi_type', 'invoice')
+                                                   ->where('referensi_id', $invoice->id)
+                                                   ->first();
 
             if ($existingTransaction) {
                 Log::info('Transaction for Invoice already exists', [
                     'invoice_id' => $invoice->id,
-                    'transaction_id' => $existingTransaction->id
+                    'transaction_id' => $existingTransaction->id,
+                    'nomor_invoice' => $invoice->nomor_invoice
                 ]);
                 return;
             }
 
-            $customerName = $invoice->poCustomer?->customer?->nama ?? 'Customer not found';
-
-            // Create income transaction
-            TransaksiKeuangan::create([
-                'id_po_supplier' => null, // Not related to PO Supplier
-                'id_rekening' => $account->id,
-                'tanggal' => $invoice->tanggal,
-                'jenis' => 'pemasukan',
-                'jumlah' => $invoice->grand_total,
-                'keterangan' => "Payment for Invoice {$invoice->nomor_invoice} - {$customerName}"
-            ]);
+            // Create income transaction using model method
+            $transaction = TransaksiKeuangan::createFromInvoice($invoice);
 
             Log::info('Income transaction successfully recorded for Invoice', [
                 'invoice_id' => $invoice->id,
-                'total' => $invoice->grand_total
+                'transaction_id' => $transaction->id,
+                'nomor_invoice' => $invoice->nomor_invoice,
+                'total' => $invoice->grand_total,
+                'account_id' => $transaction->id_rekening
             ]);
 
         } catch (\Exception $e) {
             Log::error('Failed to record transaction for Invoice', [
                 'invoice_id' => $invoice->id,
+                'nomor_invoice' => $invoice->nomor_invoice,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Optionally, you can throw the exception again if you want to prevent
+            // the invoice status from changing when transaction recording fails
+            // throw $e;
+        }
+    }
+
+    /**
+     * Method untuk cleanup transaksi jika invoice status berubah dari paid ke lainnya
+     */
+    public static function handleInvoiceUnpaid(Invoice $invoice)
+    {
+        try {
+            $existingTransaction = TransaksiKeuangan::where('referensi_type', 'invoice')
+                                                   ->where('referensi_id', $invoice->id)
+                                                   ->first();
+
+            if ($existingTransaction) {
+                $existingTransaction->delete();
+
+                Log::info('Transaction removed for unpaid invoice', [
+                    'invoice_id' => $invoice->id,
+                    'transaction_id' => $existingTransaction->id,
+                    'nomor_invoice' => $invoice->nomor_invoice
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to remove transaction for unpaid invoice', [
+                'invoice_id' => $invoice->id,
+                'nomor_invoice' => $invoice->nomor_invoice,
                 'error' => $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Method helper untuk validasi bank account
+     */
+    private static function getDefaultBankAccount(): ?RekeningBank
+    {
+        return RekeningBank::first();
+    }
+
+    /**
+     * Method untuk bulk create transactions (jika diperlukan)
+     */
+    public static function bulkCreateFromInvoices(array $invoiceIds): int
+    {
+        $created = 0;
+
+        foreach ($invoiceIds as $invoiceId) {
+            $invoice = Invoice::find($invoiceId);
+
+            if ($invoice && $invoice->isPaid()) {
+                try {
+                    self::handleInvoicePaid($invoice);
+                    $created++;
+                } catch (\Exception $e) {
+                    Log::error('Bulk create failed for invoice', [
+                        'invoice_id' => $invoiceId,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+        }
+
+        return $created;
     }
 }

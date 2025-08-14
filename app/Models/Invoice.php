@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Carbon\Carbon;
+use App\Observers\TransaksiKeuanganObserver;
+use Illuminate\Support\Facades\Log;
 
 class Invoice extends Model
 {
@@ -49,7 +51,15 @@ class Invoice extends Model
         return $this->belongsTo(RekeningBank::class, 'id_rekening_bank');
     }
 
-    // Boot method for auto-generating invoice number
+    // Relationship dengan transaksi keuangan
+    public function transaksiKeuangan()
+    {
+        return TransaksiKeuangan::where('referensi_type', 'invoice')
+                                ->where('referensi_id', $this->id)
+                                ->first();
+    }
+
+    // Boot method for auto-generating invoice number and observers
     protected static function boot()
     {
         parent::boot();
@@ -62,6 +72,19 @@ class Invoice extends Model
             // Set default tanggal if not provided
             if (empty($invoice->tanggal)) {
                 $invoice->tanggal = now();
+            }
+        });
+
+        // Observer untuk status changes
+        static::updated(function ($invoice) {
+            // Jika status berubah menjadi 'paid'
+            if ($invoice->isDirty('status') && $invoice->status === 'paid') {
+                Log::info('Invoice status changed to paid', [
+                    'invoice_id' => $invoice->id,
+                    'nomor_invoice' => $invoice->nomor_invoice
+                ]);
+
+                TransaksiKeuanganObserver::handleInvoicePaid($invoice);
             }
         });
     }
@@ -133,6 +156,14 @@ class Invoice extends Model
         return in_array($this->status, ['sent', 'overdue']);
     }
 
+    // Method untuk check apakah sudah ada transaksi
+    public function hasTransaction(): bool
+    {
+        return TransaksiKeuangan::where('referensi_type', 'invoice')
+                                ->where('referensi_id', $this->id)
+                                ->exists();
+    }
+
     // Formatted attributes
     public function getFormattedTotalSebelumPajakAttribute(): string
     {
@@ -181,7 +212,7 @@ class Invoice extends Model
         }
     }
 
-    // Update status methods
+    // Update status methods with transaction auto-recording
     public function markAsSent(): bool
     {
         if ($this->canBeSent()) {
@@ -193,7 +224,16 @@ class Invoice extends Model
     public function markAsPaid(): bool
     {
         if ($this->canBePaid()) {
-            return $this->update(['status' => 'paid']);
+            $result = $this->update(['status' => 'paid']);
+
+            // Observer akan handle auto-record transaksi
+            Log::info('Invoice marked as paid', [
+                'invoice_id' => $this->id,
+                'nomor_invoice' => $this->nomor_invoice,
+                'grand_total' => $this->grand_total
+            ]);
+
+            return $result;
         }
         return false;
     }

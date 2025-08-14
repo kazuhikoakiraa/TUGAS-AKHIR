@@ -37,109 +37,120 @@ class TransaksiKeuanganResource extends Resource
     protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                Section::make('Transaction Information')
-                    ->schema([
-                        Grid::make(2)
-                            ->schema([
-                                Forms\Components\Select::make('jenis')
-                                    ->label('Transaction Type')
-                                    ->options([
-                                        'pemasukan' => 'Income',
-                                        'pengeluaran' => 'Expense',
-                                    ])
-                                    ->required()
-                                    ->live()
-                                    ->afterStateUpdated(function ($state, Forms\Set $set) {
-                                        // Reset related fields when jenis changes
-                                        $set('id_po_supplier', null);
-                                        $set('invoice_id', null);
-                                    }),
+{
+    return $form
+        ->schema([
+            Section::make('Transaction Information')
+                ->schema([
+                    Grid::make(2)
+                        ->schema([
+                            Forms\Components\Select::make('jenis')
+                                ->label('Transaction Type')
+                                ->options([
+                                    'pemasukan' => 'Income',
+                                    'pengeluaran' => 'Expense',
+                                ])
+                                ->required()
+                                ->live()
+                                ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                    // Reset related fields when jenis changes
+                                    $set('id_po_supplier', null);
+                                    $set('referensi_type', null);
+                                    $set('referensi_id', null);
+                                }),
 
-                                Forms\Components\DatePicker::make('tanggal')
-                                    ->label('Transaction Date')
-                                    ->required()
-                                    ->default(now()),
-                            ]),
+                            Forms\Components\DatePicker::make('tanggal')
+                                ->label('Transaction Date')
+                                ->required()
+                                ->default(now()),
+                        ]),
 
-                        Grid::make(2)
-                            ->schema([
-                                Forms\Components\Select::make('id_rekening')
-                                    ->label('Bank Account')
-                                    ->options(RekeningBank::all()->pluck('nama_bank', 'id'))
-                                    ->searchable()
-                                    ->required()
-                                    ->getOptionLabelFromRecordUsing(fn (RekeningBank $record): string =>
-                                        "{$record->nama_bank} - {$record->nomor_rekening}"),
+                    Grid::make(2)
+                        ->schema([
+                            Forms\Components\Select::make('id_rekening')
+                                ->label('Bank Account')
+                                ->options(RekeningBank::all()->pluck('nama_bank', 'id'))
+                                ->searchable()
+                                ->required()
+                                ->getOptionLabelFromRecordUsing(fn (RekeningBank $record): string =>
+                                    "{$record->nama_bank} - {$record->nomor_rekening}"),
 
-                                Forms\Components\TextInput::make('jumlah')
-                                    ->label('Amount')
-                                    ->numeric()
-                                    ->required()
-                                    ->prefix('Rp')
-                                    ->mask(999999999999.99),
-                            ]),
+                            Forms\Components\TextInput::make('jumlah')
+                                ->label('Amount')
+                                ->numeric()
+                                ->required()
+                                ->prefix('Rp')
+                                ->mask(999999999999.99),
+                        ]),
 
-                        Forms\Components\Textarea::make('keterangan')
-                            ->label('Description')
-                            ->rows(3)
-                            ->columnSpanFull(),
-                    ]),
+                    Forms\Components\Textarea::make('keterangan')
+                        ->label('Description')
+                        ->rows(3)
+                        ->columnSpanFull(),
+                ]),
 
-                Section::make('Transaction Reference')
-                    ->description('Select reference if transaction is related to Supplier PO or Invoice')
-                    ->schema([
-                        Forms\Components\Select::make('id_po_supplier')
-                            ->label('Supplier PO')
-                            ->options(function () {
-                                return PoSupplier::with('supplier')
-                                    ->where('status_po', PoStatus::APPROVED)
-                                    ->get()
-                                    ->mapWithKeys(function ($po) {
-                                        return [$po->id => $po->nomor_po . ' - ' . $po->supplier->nama . ' (Rp ' . number_format($po->total, 0, ',', '.') . ')'];
-                                    });
-                            })
-                            ->searchable()
-                            ->visible(fn (Forms\Get $get) => $get('jenis') === 'pengeluaran')
-                            ->afterStateUpdated(function ($state, Forms\Set $set) {
-                                if ($state) {
-                                    $po = PoSupplier::find($state);
-                                    if ($po) {
-                                        $set('jumlah', $po->total);
-                                        $set('keterangan', "Payment for Supplier PO {$po->nomor_po} - {$po->supplier->nama}");
-                                    }
+            Section::make('Transaction Reference')
+                ->description('Select reference if transaction is related to Supplier PO or Invoice')
+                ->schema([
+                    // PO Supplier untuk expense
+                    Forms\Components\Select::make('id_po_supplier')
+                        ->label('Supplier PO')
+                        ->options(function () {
+                            return PoSupplier::with('supplier')
+                                ->where('status_po', PoStatus::APPROVED)
+                                ->get()
+                                ->mapWithKeys(function ($po) {
+                                    return [$po->id => $po->nomor_po . ' - ' . $po->supplier->nama . ' (Rp ' . number_format($po->total, 0, ',', '.') . ')'];
+                                });
+                        })
+                        ->searchable()
+                        ->visible(fn (Forms\Get $get) => $get('jenis') === 'pengeluaran')
+                        ->afterStateUpdated(function ($state, Forms\Set $set) {
+                            if ($state) {
+                                $po = PoSupplier::find($state);
+                                if ($po) {
+                                    $set('jumlah', $po->total);
+                                    $set('keterangan', "Payment for Supplier PO {$po->nomor_po} - {$po->supplier->nama}");
+                                    $set('referensi_type', 'po_supplier');
+                                    $set('referensi_id', $po->id);
                                 }
-                            }),
+                            }
+                        }),
 
-                        Forms\Components\Select::make('invoice_id')
-                            ->label('Invoice')
-                            ->options(function () {
-                                return Invoice::with('poCustomer.customer')
-                                    ->where('status', 'paid')
-                                    ->get()
-                                    ->mapWithKeys(function ($invoice) {
-                                        $customerName = $invoice->poCustomer?->customer?->nama ?? 'Customer not found';
-                                        return [$invoice->id => $invoice->nomor_invoice . ' - ' . $customerName . ' (Rp ' . number_format($invoice->grand_total, 0, ',', '.') . ')'];
-                                    });
-                            })
-                            ->searchable()
-                            ->visible(fn (Forms\Get $get) => $get('jenis') === 'pemasukan')
-                            ->afterStateUpdated(function ($state, Forms\Set $set) {
-                                if ($state) {
-                                    $invoice = Invoice::with('poCustomer.customer')->find($state);
-                                    if ($invoice) {
-                                        $set('jumlah', $invoice->grand_total);
-                                        $customerName = $invoice->poCustomer?->customer?->nama ?? 'Customer not found';
-                                        $set('keterangan', "Payment for Invoice {$invoice->nomor_invoice} - {$customerName}");
-                                    }
+                    // Invoice untuk income
+                    Forms\Components\Select::make('invoice_reference')
+                        ->label('Invoice')
+                        ->options(function () {
+                            return Invoice::with('poCustomer.customer')
+                                ->where('status', 'paid')
+                                ->get()
+                                ->mapWithKeys(function ($invoice) {
+                                    $customerName = $invoice->poCustomer?->customer?->nama ?? 'Customer not found';
+                                    return [$invoice->id => $invoice->nomor_invoice . ' - ' . $customerName . ' (Rp ' . number_format($invoice->grand_total, 0, ',', '.') . ')'];
+                                });
+                        })
+                        ->searchable()
+                        ->visible(fn (Forms\Get $get) => $get('jenis') === 'pemasukan')
+                        ->afterStateUpdated(function ($state, Forms\Set $set) {
+                            if ($state) {
+                                $invoice = Invoice::with('poCustomer.customer')->find($state);
+                                if ($invoice) {
+                                    $set('jumlah', $invoice->grand_total);
+                                    $customerName = $invoice->poCustomer?->customer?->nama ?? 'Customer not found';
+                                    $set('keterangan', "Payment for Invoice {$invoice->nomor_invoice} - {$customerName}");
+                                    $set('referensi_type', 'invoice');
+                                    $set('referensi_id', $invoice->id);
                                 }
-                            }),
-                    ])
-                    ->collapsed(),
-            ]);
-    }
+                            }
+                        }),
+
+                    // Hidden fields untuk referensi system
+                    Forms\Components\Hidden::make('referensi_type'),
+                    Forms\Components\Hidden::make('referensi_id'),
+                ])
+                ->collapsed(),
+        ]);
+}
 
     public static function table(Table $table): Table
     {
@@ -186,10 +197,40 @@ class TransaksiKeuanganResource extends Resource
                     ->weight('bold'),
 
                 Tables\Columns\TextColumn::make('poSupplier.nomor_po')
-                    ->label('Supplier PO')
-                    ->searchable()
-                    ->toggleable()
-                    ->placeholder('—'),
+    ->label('Supplier PO')
+    ->searchable()
+    ->toggleable()
+    ->placeholder('—'),
+
+    Tables\Columns\TextColumn::make('invoice_info')
+    ->label('Invoice')
+    ->searchable()
+    ->toggleable()
+    ->placeholder('—')
+    ->formatStateUsing(function ($record) {
+        if ($record->referensi_type === 'invoice' && $record->referensi_id) {
+            $invoice = \App\Models\Invoice::find($record->referensi_id);
+            if ($invoice) {
+                return $invoice->nomor_invoice;
+            }
+        }
+        return '—';
+    }),
+    Tables\Columns\BadgeColumn::make('referensi_type')
+    ->label('Reference Type')
+    ->colors([
+        'primary' => 'po_supplier',
+        'success' => 'invoice',
+        'gray' => 'manual',
+    ])
+    ->formatStateUsing(fn (string $state): string => match ($state) {
+        'po_supplier' => 'PO Supplier',
+        'invoice' => 'Invoice',
+        'manual' => 'Manual',
+        default => 'Unknown',
+    })
+    ->toggleable(isToggledHiddenByDefault: true),
+
 
                 Tables\Columns\TextColumn::make('keterangan')
                     ->label('Description')

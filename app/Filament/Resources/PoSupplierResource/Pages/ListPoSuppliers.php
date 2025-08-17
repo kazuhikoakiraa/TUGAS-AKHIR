@@ -58,13 +58,10 @@ class ListPoSuppliers extends ListRecords
      */
     private function getTabCount(?PoStatus $status = null): int
     {
-        // Get all counts at once for better performance
         $counts = $this->getAllStatusCounts();
-
         if (!$status) {
             return array_sum($counts);
         }
-
         return $counts[$status->value] ?? 0;
     }
 

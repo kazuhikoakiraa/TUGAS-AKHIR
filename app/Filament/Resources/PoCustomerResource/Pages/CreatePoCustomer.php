@@ -25,10 +25,7 @@ class CreatePoCustomer extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // Set the user who created the PO
         $data['id_user'] = \Illuminate\Support\Facades\Auth::check() ? \Illuminate\Support\Facades\Auth::id() : null;
-
-        // Calculate total from detail items
         $totalSebelumPajak = 0;
         if (isset($data['details'])) {
             foreach ($data['details'] as &$detail) {
@@ -36,11 +33,8 @@ class CreatePoCustomer extends CreateRecord
                 $totalSebelumPajak += $detail['total'];
             }
         }
-
-        // Set subtotal and tax
         $data['total_sebelum_pajak'] = $totalSebelumPajak;
-        $data['total_pajak'] = $totalSebelumPajak * 0.11; // 11% tax
-
+        $data['total_pajak'] = $totalSebelumPajak * 0.11; 
         return $data;
     }
 }

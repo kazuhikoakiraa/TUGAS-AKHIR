@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Auth\Events\PasswordReset;
+use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\PoCustomerController;
 use App\Http\Controllers\PoSupplierController;
 use App\Http\Controllers\SuratJalanController;
@@ -137,4 +138,11 @@ Route::middleware(['api'])->prefix('api')->group(function () {
             'data' => $suratJalan->load(['poCustomer.customer', 'user']),
         ]);
     })->where('suratJalan', '[0-9]+');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('/quotation/{quotation}/pdf', [QuotationController::class, 'downloadPdf'])
+        ->name('quotation.pdf');
+    Route::get('/quotation/{quotation}/preview', [QuotationController::class, 'streamPdf'])
+        ->name('quotation.preview');
 });

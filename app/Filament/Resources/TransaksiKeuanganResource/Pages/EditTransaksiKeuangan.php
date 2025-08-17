@@ -92,8 +92,6 @@ class EditTransaksiKeuangan extends EditRecord
     protected function afterSave(): void
     {
         $record = $this->record;
-
-        // Log activity for changes
         activity()
             ->performedOn($record)
             ->causedBy(filament()->auth()->user())

@@ -145,16 +145,6 @@
 <body>
     <div class="container">
         <div class="header">
-            <!-- Logo perusahaan dengan fallback -->
-            <div style="margin-bottom: 15px;">
-                <img src="{{ asset('images/logo.png') }}"
-                     alt="PT. Sentra Alam Anandana"
-                     class="logo"
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                <div style="display: none; background-color: white; color: #1e40af; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 16px; max-width: 180px; margin: 0 auto;">
-                    PT. SENTRA ALAM<br>ANANDANA
-                </div>
-            </div>
             <h1 class="company-name">PT. Sentra Alam Anandana</h1>
         </div>
 

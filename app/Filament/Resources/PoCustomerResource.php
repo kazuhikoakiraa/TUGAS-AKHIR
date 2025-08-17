@@ -30,7 +30,7 @@ class PoCustomerResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Customer POs';
 
-    protected static ?string $navigationGroup = 'Purchase Order';
+    protected static ?string $navigationGroup = 'Sales';
 
     protected static ?int $navigationSort = 3;
 

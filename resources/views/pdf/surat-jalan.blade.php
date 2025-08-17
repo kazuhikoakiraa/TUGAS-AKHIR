@@ -295,7 +295,7 @@
         <tbody>
             @php
                 $details = $po->details ?? collect();
-                $totalRows = max(8, $details->count());
+                $totalRows = max(1, $details->count());
             @endphp
 
             @if($details->count() > 0)

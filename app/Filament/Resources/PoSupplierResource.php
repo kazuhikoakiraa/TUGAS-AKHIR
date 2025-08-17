@@ -30,7 +30,7 @@ class PoSupplierResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Supplier POs';
 
-    protected static ?string $navigationGroup = 'Purchase Order';
+    protected static ?string $navigationGroup = 'Sales';
 
     protected static ?int $navigationSort = 4;
 

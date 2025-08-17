@@ -52,7 +52,6 @@ class EditPoSupplier extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Recalculate total from detail items
         $totalSebelumPajak = 0;
         if (isset($data['details'])) {
             foreach ($data['details'] as &$detail) {
@@ -60,11 +59,8 @@ class EditPoSupplier extends EditRecord
                 $totalSebelumPajak += $detail['total'];
             }
         }
-
-        // Set subtotal and tax
         $data['total_sebelum_pajak'] = $totalSebelumPajak;
-        $data['total_pajak'] = $totalSebelumPajak * 0.11; // 11% tax
-
+        $data['total_pajak'] = $totalSebelumPajak * 0.11;
         return $data;
     }
 

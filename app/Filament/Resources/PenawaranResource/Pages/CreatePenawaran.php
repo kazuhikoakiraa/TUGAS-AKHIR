@@ -30,20 +30,4 @@ class CreatePenawaran extends CreateRecord
 
         return $data;
     }
-
-    protected function getHeaderActions(): array
-    {
-        return [
-            Actions\Action::make('save_and_send')
-                ->label('Save & Send')
-                ->icon('heroicon-o-paper-airplane')
-                ->color('warning')
-                ->action(function () {
-                    $this->form->getState();
-                    $this->mutateFormDataBeforeCreate($this->data);
-                    $this->data['status'] = 'sent';
-                    $this->create();
-                }),
-        ];
-    }
 }

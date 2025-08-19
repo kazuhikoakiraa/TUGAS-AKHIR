@@ -16,6 +16,7 @@ class Customer extends Model
         'alamat',
         'telepon',
         'email',
+        'npwp',
     ];
 
     protected $casts = [
@@ -105,6 +106,29 @@ class Customer extends Model
     }
 
     /**
+     * Get formatted NPWP
+     */
+    public function getFormattedNpwpAttribute(): string
+    {
+        if (!$this->npwp) {
+            return '-';
+        }
+
+        $npwp = preg_replace('/[^0-9]/', '', $this->npwp);
+
+        if (strlen($npwp) === 15) {
+            return substr($npwp, 0, 2) . '.' .
+                   substr($npwp, 2, 3) . '.' .
+                   substr($npwp, 5, 3) . '.' .
+                   substr($npwp, 8, 1) . '-' .
+                   substr($npwp, 9, 3) . '.' .
+                   substr($npwp, 12, 3);
+        }
+
+        return $npwp;
+    }
+
+    /**
      * Check if customer is active (has purchase orders)
      */
     public function isActive(): bool
@@ -161,7 +185,8 @@ class Customer extends Model
             $query->where('nama', 'like', '%' . $search . '%')
                 ->orWhere('email', 'like', '%' . $search . '%')
                 ->orWhere('telepon', 'like', '%' . $search . '%')
-                ->orWhere('alamat', 'like', '%' . $search . '%');
+                ->orWhere('alamat', 'like', '%' . $search . '%')
+                ->orWhere('npwp', 'like', '%' . $search . '%');
         });
     }
 
@@ -239,6 +264,27 @@ class Customer extends Model
     }
 
     /**
+     * Validate NPWP format
+     */
+    public static function validateNpwp(string $npwp): bool
+    {
+        // Remove all non-numeric characters
+        $cleanNpwp = preg_replace('/[^0-9]/', '', $npwp);
+
+        // NPWP must be exactly 15 digits
+        if (strlen($cleanNpwp) !== 15) {
+            return false;
+        }
+
+        // Basic validation: check if it's not all zeros or same digit
+        if (preg_match('/^0{15}$/', $cleanNpwp) || preg_match('/^(\d)\1{14}$/', $cleanNpwp)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Boot method for model events
      */
     protected static function boot()
@@ -248,11 +294,21 @@ class Customer extends Model
         static::creating(function ($customer) {
             // Additional logic when creating customer
             $customer->email = strtolower($customer->email);
+
+            // Clean NPWP format
+            if ($customer->npwp) {
+                $customer->npwp = preg_replace('/[^0-9]/', '', $customer->npwp);
+            }
         });
 
         static::updating(function ($customer) {
             // Additional logic when updating customer
             $customer->email = strtolower($customer->email);
+
+            // Clean NPWP format
+            if ($customer->npwp) {
+                $customer->npwp = preg_replace('/[^0-9]/', '', $customer->npwp);
+            }
         });
     }
 }

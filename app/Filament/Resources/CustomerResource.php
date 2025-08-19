@@ -67,6 +67,50 @@ class CustomerResource extends Resource
                             ->maxLength(255)
                             ->placeholder('customer@example.com')
                             ->prefixIcon('heroicon-m-envelope'),
+
+                        Forms\Components\TextInput::make('npwp')
+                            ->label('NPWP')
+                            ->placeholder('XX.XXX.XXX.X-XXX.XXX or 15 digits')
+                            ->maxLength(20)
+                            ->prefixIcon('heroicon-m-identification')
+                            ->helperText('Enter 15 digits NPWP number (optional)')
+                            ->rules([
+                                function () {
+                                    return function (string $attribute, $value, \Closure $fail) {
+                                        if (!empty($value)) {
+                                            $cleanNpwp = preg_replace('/[^0-9]/', '', $value);
+
+                                            if (strlen($cleanNpwp) !== 15) {
+                                                $fail('NPWP must be exactly 15 digits.');
+                                                return;
+                                            }
+
+                                            if (!Customer::validateNpwp($value)) {
+                                                $fail('Invalid NPWP format.');
+                                            }
+                                        }
+                                    };
+                                }
+                            ])
+                            ->unique(Customer::class, 'npwp', ignoreRecord: true, modifyRuleUsing: function ($rule, $get) {
+                                return $rule->whereNotNull('npwp')->where('npwp', '!=', '');
+                            })
+                            ->dehydrateStateUsing(function ($state) {
+                                return $state ? preg_replace('/[^0-9]/', '', $state) : null;
+                            })
+                            ->formatStateUsing(function ($state) {
+                                if (!$state || strlen($state) !== 15) {
+                                    return $state;
+                                }
+
+                                return substr($state, 0, 2) . '.' .
+                                       substr($state, 2, 3) . '.' .
+                                       substr($state, 5, 3) . '.' .
+                                       substr($state, 8, 1) . '-' .
+                                       substr($state, 9, 3) . '.' .
+                                       substr($state, 12, 3);
+                            })
+                            ->columnSpanFull(),
                     ])
                     ->columns(2)
                     ->collapsible(),
@@ -114,6 +158,34 @@ class CustomerResource extends Resource
                     ->copyMessage('Email copied successfully')
                     ->copyMessageDuration(1500),
 
+                Tables\Columns\TextColumn::make('npwp')
+                    ->label('NPWP')
+                    ->searchable()
+                    ->sortable()
+                    ->icon('heroicon-m-identification')
+                    ->formatStateUsing(function ($state) {
+                        if (!$state) {
+                            return '-';
+                        }
+
+                        $cleanNpwp = preg_replace('/[^0-9]/', '', $state);
+
+                        if (strlen($cleanNpwp) === 15) {
+                            return substr($cleanNpwp, 0, 2) . '.' .
+                                   substr($cleanNpwp, 2, 3) . '.' .
+                                   substr($cleanNpwp, 5, 3) . '.' .
+                                   substr($cleanNpwp, 8, 1) . '-' .
+                                   substr($cleanNpwp, 9, 3) . '.' .
+                                   substr($cleanNpwp, 12, 3);
+                        }
+
+                        return $cleanNpwp;
+                    })
+                    ->copyable()
+                    ->copyMessage('NPWP copied successfully')
+                    ->copyMessageDuration(1500)
+                    ->placeholder('-'),
+
                 Tables\Columns\TextColumn::make('po_customers_count')
                     ->label('Total PO')
                     ->counts('poCustomers')
@@ -159,9 +231,13 @@ class CustomerResource extends Resource
                                 fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
-                    Tables\Filters\Filter::make('has_orders')
+                Tables\Filters\Filter::make('has_orders')
                     ->label('Has Purchase Orders')
                     ->query(fn (Builder $query): Builder => $query->has('poCustomers'))
+                    ->toggle(),
+                Tables\Filters\Filter::make('has_npwp')
+                    ->label('Has NPWP')
+                    ->query(fn (Builder $query): Builder => $query->whereNotNull('npwp')->where('npwp', '!=', ''))
                     ->toggle(),
             ])
             ->actions([
@@ -213,8 +289,37 @@ class CustomerResource extends Resource
                             ->label('Email')
                             ->icon('heroicon-m-envelope')
                             ->copyable(),
+
+                        Infolists\Components\TextEntry::make('npwp')
+                            ->label('NPWP')
+                            ->icon('heroicon-m-identification')
+                            ->formatStateUsing(function ($state) {
+                                if (!$state) {
+                                    return '-';
+                                }
+
+                                $cleanNpwp = preg_replace('/[^0-9]/', '', $state);
+
+                                if (strlen($cleanNpwp) === 15) {
+                                    return substr($cleanNpwp, 0, 2) . '.' .
+                                           substr($cleanNpwp, 2, 3) . '.' .
+                                           substr($cleanNpwp, 5, 3) . '.' .
+                                           substr($cleanNpwp, 8, 1) . '-' .
+                                           substr($cleanNpwp, 9, 3) . '.' .
+                                           substr($cleanNpwp, 12, 3);
+                                }
+
+                                return $cleanNpwp;
+                            })
+                            ->copyable()
+                            ->placeholder('No NPWP'),
+
+                        Infolists\Components\TextEntry::make('')
+                            ->label('')
+                            ->state('')
+                            ->visible(false),
                     ])
-                    ->columns(2),
+                    ->columns(3),
 
                 Infolists\Components\Section::make('Statistics')
                     ->schema([

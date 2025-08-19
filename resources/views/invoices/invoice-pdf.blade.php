@@ -214,6 +214,18 @@
             text-align: right;
         }
 
+        .product-name {
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 3px;
+        }
+
+        .product-desc {
+            font-size: 8px;
+            color: #666;
+            line-height: 1.2;
+        }
+
         .totals-section {
             padding: 8px 15px;
             text-align: right;
@@ -340,23 +352,19 @@
 
                 <div class="company-info-section">
                     <div class="company-details">
-                        <div class="company-name">PT. NAMA PERUSAHAAN ANDA</div>
+                        <div class="company-name">PT. SENTRA ALAM ANANDANA</div>
                         <div class="company-address">
-                            Jl. Alamat Perusahaan Lengkap<br>
-                            Kelurahan, Kecamatan, Kota<br>
-                            +62 XXX XXXX XXXX | +62 XXX XXXX XXXX<br>
-                            email@perusahaan.com
+                            Jl. Pelita 1 Ujung No. 36 Labuhan Ratu<br>
+                            Kedaton, Bandar Lampung<br>
+                            +62 822 8258 4263 | +62 812 7926 2498<br>
+                            sales.sentra@sentra-alam.com
                         </div>
                     </div>
                     <div class="logo-section">
                         <div class="logo-container">
-                            <!-- Tempat untuk logo perusahaan -->
-                            <div style="font-size: 7px; text-align: center; color: #999;">
-                                LOGO<br>
-                                PERUSAHAAN
-                            </div>
+                            <img src="{{ public_path('images/logo.png') }}" alt="Company Logo" />
                         </div>
-                        <div class="logo-text">PT. NAMA PERUSAHAAN ANDA</div>
+                        <div class="logo-text">PT. SENTRA ALAM ANANDANA</div>
                     </div>
                 </div>
             </div>
@@ -409,7 +417,7 @@
                         <div class="detail-group">
                             <div class="detail-title">FOR</div>
                             <div class="detail-row">
-                                <span class="detail-value">{{ $invoice->keterangan ?? 'Jasa Pekerjaan' }}</span>
+                                <span class="detail-value">{{ $invoice->keterangan ?? 'Product Supply & Services' }}</span>
                             </div>
                         </div>
                     </div>
@@ -421,7 +429,7 @@
                 <table class="items-table">
                     <thead>
                         <tr>
-                            <th class="desc-col">Description ▼</th>
+                            <th class="desc-col">Product Name ▼</th>
                             <th class="qty-col">Qty ▼</th>
                             <th class="price-col">Unit Price ▼</th>
                             <th class="total-col">Total ▼</th>
@@ -431,7 +439,12 @@
                         @if($invoice->poCustomer && $invoice->poCustomer->details && $invoice->poCustomer->details->count() > 0)
                             @foreach($invoice->poCustomer->details as $detail)
                             <tr>
-                                <td class="desc-col">{{ $detail->deskripsi }}</td>
+                                <td class="desc-col">
+                                    <div class="product-name">{{ $detail->nama_produk ?? $detail->deskripsi }}</div>
+                                    @if($detail->deskripsi && $detail->nama_produk)
+                                        <div class="product-desc">{{ $detail->deskripsi }}</div>
+                                    @endif
+                                </td>
                                 <td class="qty-col">{{ number_format($detail->jumlah, 0, ',', '.') }}</td>
                                 <td class="price-col">{{ number_format($detail->harga_satuan, 0, ',', '.') }}</td>
                                 <td class="total-col">{{ number_format($detail->total, 0, ',', '.') }}</td>
@@ -439,7 +452,9 @@
                             @endforeach
                         @else
                             <tr>
-                                <td class="desc-col">Jasa/Barang sesuai PO {{ $invoice->poCustomer->nomor_po ?? '' }}</td>
+                                <td class="desc-col">
+                                    <div class="product-name">Product/Service as per PO {{ $invoice->poCustomer->nomor_po ?? '' }}</div>
+                                </td>
                                 <td class="qty-col">1</td>
                                 <td class="price-col">{{ number_format($invoice->total_sebelum_pajak, 0, ',', '.') }}</td>
                                 <td class="total-col">{{ number_format($invoice->total_sebelum_pajak, 0, ',', '.') }}</td>
@@ -457,7 +472,7 @@
                         </tr>
                         <tr>
                             <td class="label-col">TAX RATE 11%</td>
-                            <td class="amount-col">IDR{{ number_format($invoice->total_pajak, 0, ',', '.') }}</td>
+                            <td class="amount-col">IDR {{ number_format($invoice->total_pajak, 0, ',', '.') }}</td>
                         </tr>
                         <tr>
                             <td class="label-col">OTHER</td>
@@ -465,7 +480,7 @@
                         </tr>
                         <tr class="total-row">
                             <td class="label-col">TOTAL</td>
-                            <td class="amount-col">IDR{{ number_format($invoice->grand_total, 0, ',', '.') }}</td>
+                            <td class="amount-col">IDR {{ number_format($invoice->grand_total, 0, ',', '.') }}</td>
                         </tr>
                     </table>
                 </div>
@@ -474,7 +489,7 @@
             <!-- Payment Information -->
             <div class="payment-section">
                 <div class="payment-info">
-                    <strong>Make all checks payable to PT. NAMA PERUSAHAAN ANDA</strong>
+                    <strong>Make all checks payable to PT. SENTRA ALAM ANANDANA</strong>
                 </div>
 
                 <div class="bank-info">
@@ -483,15 +498,15 @@
                     <strong>Account Bank:</strong> {{ $invoice->rekeningBank->nama_bank }}<br>
                     <strong>Account Name:</strong> {{ $invoice->rekeningBank->nama_pemilik }}
                     @else
-                    <strong>Account No:</strong> 2349524248 Bank Mega<br>
-                    <strong>Account Bank:</strong> Bank Mega<br>
-                    <strong>Account Name:</strong> PT. Nama Perusahaan Anda
+                    <strong>Account No:</strong> 0098 0100 2824 560 PT. Sentra Alam Anandana<br>
+                    <strong>Account Bank:</strong> Bank Rakyat Indonesia<br>
+                    <strong>Account Name:</strong> PT. Sentra Alam Anandana
                     @endif
                 </div>
 
                 <div class="contact-info">
                     <p>If you have any questions concerning this invoice, use the following contact information:</p>
-                    <p>+62 XXX XXXX XXXX/+62 XXX XXXX XXXX, sales-care@perusahaan.com</p>
+                    <p>+62 822 8258 4263 / +62 812 7926 2498, sales.sentra@sentra-alam.com</p>
                 </div>
 
                 <div class="footer">
@@ -503,14 +518,14 @@
                     <div class="signature-block">
                         <p>Best Regards,</p>
                         <div class="signature-line"></div>
-                        <p><strong>{{ $invoice->user->name ?? 'PT. NAMA PERUSAHAAN ANDA' }}</strong></p>
+                        <p><strong>PT. SENTRA ALAM ANANDANA</strong></p>
                     </div>
                 </div>
             </div>
 
             <!-- Company Footer -->
             <div class="company-footer">
-                PT. NAMA PERUSAHAAN ANDA
+                PT. SENTRA ALAM ANANDANA
             </div>
         </div>
     </div>

@@ -69,7 +69,7 @@ class ViewPoSupplier extends ViewRecord
     private function recalculateTotal(): void
     {
         $totalSebelumPajak = $this->record->details()->sum(DB::raw('jumlah * harga_satuan'));
-        $totalPajak = $totalSebelumPajak * 0.11;
+        $totalPajak = $totalSebelumPajak * ($this->record->tax_rate / 100);
 
         $this->record->update([
             'total_sebelum_pajak' => $totalSebelumPajak,
@@ -154,15 +154,21 @@ class ViewPoSupplier extends ViewRecord
 
                 Section::make('Total & Tax')
                     ->schema([
-                        Grid::make(3)
+                        Grid::make(4)
                             ->schema([
                                 TextEntry::make('total_sebelum_pajak')
                                     ->label('Subtotal')
                                     ->money('IDR')
                                     ->size('lg'),
 
+                                TextEntry::make('tax_rate')
+                                    ->label('Tax Rate')
+                                    ->suffix('%')
+                                    ->size('lg')
+                                    ->color('info'),
+
                                 TextEntry::make('total_pajak')
-                                    ->label('Tax (11%)')
+                                    ->label('Tax Amount')
                                     ->money('IDR')
                                     ->size('lg'),
 

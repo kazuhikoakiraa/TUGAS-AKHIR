@@ -26,6 +26,7 @@ class CreatePoSupplier extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['id_user'] = \Illuminate\Support\Facades\Auth::check() ? \Illuminate\Support\Facades\Auth::id() : null;
+
         $totalSebelumPajak = 0;
         if (isset($data['details'])) {
             foreach ($data['details'] as &$detail) {
@@ -33,8 +34,17 @@ class CreatePoSupplier extends CreateRecord
                 $totalSebelumPajak += $detail['total'];
             }
         }
+
         $data['total_sebelum_pajak'] = $totalSebelumPajak;
-        $data['total_pajak'] = $totalSebelumPajak * 0.11;
+
+        // Set default tax rate jika tidak ada
+        if (empty($data['tax_rate'])) {
+            $data['tax_rate'] = 11.00;
+        }
+
+        // Hitung pajak berdasarkan tax rate
+        $data['total_pajak'] = $totalSebelumPajak * ($data['tax_rate'] / 100);
+
         return $data;
     }
 }

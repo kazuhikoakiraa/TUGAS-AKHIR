@@ -16,7 +16,6 @@ class PoSupplier extends Model
 {
     use HasFactory;
 
-    // FIXED: Konsisten lowercase
     protected $table = 'po_supplier';
 
     protected $fillable = [
@@ -27,17 +26,18 @@ class PoSupplier extends Model
         'jenis_po',
         'status_po',
         'total_sebelum_pajak',
+        'tax_rate',
         'total_pajak',
     ];
 
     protected $casts = [
         'tanggal_po' => 'date',
         'total_sebelum_pajak' => 'decimal:2',
+        'tax_rate' => 'decimal:2',
         'total_pajak' => 'decimal:2',
         'status_po' => PoStatus::class,
     ];
 
-    // FIXED: Method name lowercase
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class, 'id_supplier');
@@ -64,12 +64,12 @@ class PoSupplier extends Model
             if ($poSupplier->exists) {
                 $totalSebelumPajak = $poSupplier->details()->sum(DB::raw('jumlah * harga_satuan'));
                 $poSupplier->total_sebelum_pajak = $totalSebelumPajak;
-                $poSupplier->total_pajak = $totalSebelumPajak * 0.11;
+                // Hitung pajak berdasarkan tax_rate
+                $poSupplier->total_pajak = $totalSebelumPajak * ($poSupplier->tax_rate / 100);
             }
         });
     }
 
-    // FIXED: Foreign key konsisten
     public function details(): HasMany
     {
         return $this->hasMany(PoSupplierDetail::class, 'id_po_supplier');
@@ -98,6 +98,10 @@ class PoSupplier extends Model
             if (empty($po->nomor_po)) {
                 $po->nomor_po = self::generateNomorPo();
             }
+            // Set default tax rate jika belum ada
+            if (empty($po->tax_rate)) {
+                $po->tax_rate = 11.00;
+            }
         });
 
         static::saved(function ($po) {
@@ -118,7 +122,7 @@ class PoSupplier extends Model
     public function updateTotalsWithoutEvents(): void
     {
         $totalSebelumPajak = $this->details()->sum('total');
-        $totalPajak = $totalSebelumPajak * 0.11;
+        $totalPajak = $totalSebelumPajak * ($this->tax_rate / 100);
 
         $this->updating_totals = true;
 

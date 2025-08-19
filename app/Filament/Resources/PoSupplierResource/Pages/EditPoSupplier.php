@@ -59,8 +59,13 @@ class EditPoSupplier extends EditRecord
                 $totalSebelumPajak += $detail['total'];
             }
         }
+
         $data['total_sebelum_pajak'] = $totalSebelumPajak;
-        $data['total_pajak'] = $totalSebelumPajak * 0.11;
+
+        // Gunakan tax rate yang ada atau default 11%
+        $taxRate = $data['tax_rate'] ?? 11.00;
+        $data['total_pajak'] = $totalSebelumPajak * ($taxRate / 100);
+
         return $data;
     }
 
@@ -83,9 +88,9 @@ class EditPoSupplier extends EditRecord
             ]);
         }
 
-        // Recalculate totals
+        // Recalculate totals menggunakan tax rate
         $totalSebelumPajak = $record->details()->sum(DB::raw('jumlah * harga_satuan'));
-        $totalPajak = $totalSebelumPajak * 0.11;
+        $totalPajak = $totalSebelumPajak * ($record->tax_rate / 100);
 
         $record->update([
             'total_sebelum_pajak' => $totalSebelumPajak,

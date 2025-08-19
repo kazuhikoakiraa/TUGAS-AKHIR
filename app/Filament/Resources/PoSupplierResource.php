@@ -116,6 +116,7 @@ class PoSupplierResource extends Resource
                                         $jumlah = (float) $get('jumlah') ?? 0;
                                         $harga = (float) $get('harga_satuan') ?? 0;
                                         $set('total', $jumlah * $harga);
+                                        self::updateTotals($get, $set);
                                     }),
 
                                 Forms\Components\TextInput::make('harga_satuan')
@@ -128,6 +129,7 @@ class PoSupplierResource extends Resource
                                         $jumlah = (float) $get('jumlah') ?? 0;
                                         $harga = (float) $get('harga_satuan') ?? 0;
                                         $set('total', $jumlah * $harga);
+                                        self::updateTotals($get, $set);
                                     }),
 
                                 Forms\Components\TextInput::make('total')
@@ -160,8 +162,22 @@ class PoSupplierResource extends Resource
                             ->disabled()
                             ->dehydrated(),
 
+                        Forms\Components\TextInput::make('tax_rate')
+                            ->label('Tax Rate (%)')
+                            ->numeric()
+                            ->suffix('%')
+                            ->required()
+                            ->default(11.00)
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->step(0.01)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                self::updateTotals($get, $set);
+                            }),
+
                         Forms\Components\TextInput::make('total_pajak')
-                            ->label('Tax (11%)')
+                            ->label('Tax Amount')
                             ->numeric()
                             ->prefix('Rp')
                             ->disabled()
@@ -173,7 +189,8 @@ class PoSupplierResource extends Resource
                                 $totalSebelumPajak = (float) $get('total_sebelum_pajak') ?? 0;
                                 $totalPajak = (float) $get('total_pajak') ?? 0;
                                 return 'Rp ' . number_format($totalSebelumPajak + $totalPajak, 0, ',', '.');
-                            }),
+                            })
+                            ->columnSpanFull(),
                     ])
                     ->columns(3),
             ]);
@@ -218,6 +235,12 @@ class PoSupplierResource extends Resource
                         }
                         return PoStatus::from($state)->getColor();
                     }),
+
+                Tables\Columns\TextColumn::make('tax_rate')
+                    ->label('Tax Rate')
+                    ->suffix('%')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
@@ -308,7 +331,8 @@ class PoSupplierResource extends Resource
             $subtotal += (float) ($detail['total'] ?? 0);
         }
 
-        $pajak = $subtotal * 0.11; // 11% tax
+        $taxRate = (float) ($get('tax_rate') ?? 11);
+        $pajak = $subtotal * ($taxRate / 100);
 
         $set('total_sebelum_pajak', $subtotal);
         $set('total_pajak', $pajak);

@@ -58,18 +58,62 @@ class SupplierResource extends Resource
                             ->tel()
                             ->maxLength(20)
                             ->placeholder('Example: 021-12345678')
-                            ->prefixIcon('heroicon-o-phone')
+                            ->prefixIcon('heroicon-m-phone')
                             ->helperText('Format: 021-12345678 or 081234567890'),
 
                         Forms\Components\TextInput::make('email')
                             ->label('Email')
                             ->required()
                             ->email()
-                            ->unique(ignoreRecord: true)
+                            ->unique(Supplier::class, 'email', ignoreRecord: true)
                             ->maxLength(255)
                             ->placeholder('supplier@example.com')
-                            ->prefixIcon('heroicon-o-envelope')
+                            ->prefixIcon('heroicon-m-envelope')
                             ->helperText('Email will be used for communication'),
+
+                        Forms\Components\TextInput::make('npwp')
+                            ->label('NPWP')
+                            ->placeholder('XX.XXX.XXX.X-XXX.XXX or 15 digits')
+                            ->maxLength(20)
+                            ->prefixIcon('heroicon-m-identification')
+                            ->helperText('Enter 15 digits NPWP number (optional)')
+                            ->rules([
+                                function () {
+                                    return function (string $attribute, $value, \Closure $fail) {
+                                        if (!empty($value)) {
+                                            $cleanNpwp = preg_replace('/[^0-9]/', '', $value);
+
+                                            if (strlen($cleanNpwp) !== 15) {
+                                                $fail('NPWP must be exactly 15 digits.');
+                                                return;
+                                            }
+
+                                            if (!Supplier::validateNpwp($value)) {
+                                                $fail('Invalid NPWP format.');
+                                            }
+                                        }
+                                    };
+                                }
+                            ])
+                            ->unique(Supplier::class, 'npwp', ignoreRecord: true, modifyRuleUsing: function ($rule, $get) {
+                                return $rule->whereNotNull('npwp')->where('npwp', '!=', '');
+                            })
+                            ->dehydrateStateUsing(function ($state) {
+                                return $state ? preg_replace('/[^0-9]/', '', $state) : null;
+                            })
+                            ->formatStateUsing(function ($state) {
+                                if (!$state || strlen($state) !== 15) {
+                                    return $state;
+                                }
+
+                                return substr($state, 0, 2) . '.' .
+                                       substr($state, 2, 3) . '.' .
+                                       substr($state, 5, 3) . '.' .
+                                       substr($state, 8, 1) . '-' .
+                                       substr($state, 9, 3) . '.' .
+                                       substr($state, 12, 3);
+                            })
+                            ->columnSpanFull(),
                     ])
                     ->columns(2)
                     ->collapsible(),
@@ -105,19 +149,38 @@ class SupplierResource extends Resource
                     ->label('Phone')
                     ->searchable()
                     ->sortable()
-                    ->icon('heroicon-o-phone')
+                    ->icon('heroicon-m-phone')
                     ->copyable()
                     ->copyMessage('Phone number successfully copied')
                     ->copyMessageDuration(1500),
 
-                Tables\Columns\TextColumn::make('email')
-                    ->label('Email')
+                Tables\Columns\TextColumn::make('npwp')
+                    ->label('NPWP')
                     ->searchable()
                     ->sortable()
-                    ->icon('heroicon-o-envelope')
+                    ->icon('heroicon-m-identification')
+                    ->formatStateUsing(function ($state) {
+                        if (!$state) {
+                            return '-';
+                        }
+
+                        $cleanNpwp = preg_replace('/[^0-9]/', '', $state);
+
+                        if (strlen($cleanNpwp) === 15) {
+                            return substr($cleanNpwp, 0, 2) . '.' .
+                                   substr($cleanNpwp, 2, 3) . '.' .
+                                   substr($cleanNpwp, 5, 3) . '.' .
+                                   substr($cleanNpwp, 8, 1) . '-' .
+                                   substr($cleanNpwp, 9, 3) . '.' .
+                                   substr($cleanNpwp, 12, 3);
+                        }
+
+                        return $cleanNpwp;
+                    })
                     ->copyable()
-                    ->copyMessage('Email successfully copied')
-                    ->copyMessageDuration(1500),
+                    ->copyMessage('NPWP successfully copied')
+                    ->copyMessageDuration(1500)
+                    ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('po_suppliers_count')
                     ->label('Total PO')
@@ -174,6 +237,11 @@ class SupplierResource extends Resource
                     ->label('Has Purchase Orders')
                     ->query(fn (Builder $query): Builder => $query->has('poSuppliers'))
                     ->toggle(),
+
+                Tables\Filters\Filter::make('has_npwp')
+                    ->label('Has NPWP')
+                    ->query(fn (Builder $query): Builder => $query->whereNotNull('npwp')->where('npwp', '!=', ''))
+                    ->toggle(),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
@@ -229,11 +297,40 @@ class SupplierResource extends Resource
                                     ->copyable()
                                     ->copyMessage('Phone number successfully copied'),
 
+                                Infolists\Components\TextEntry::make('npwp')
+                                    ->label('NPWP')
+                                    ->icon('heroicon-m-identification')
+                                    ->formatStateUsing(function ($state) {
+                                        if (!$state) {
+                                            return 'No NPWP';
+                                        }
+
+                                        $cleanNpwp = preg_replace('/[^0-9]/', '', $state);
+
+                                        if (strlen($cleanNpwp) === 15) {
+                                            return substr($cleanNpwp, 0, 2) . '.' .
+                                                   substr($cleanNpwp, 2, 3) . '.' .
+                                                   substr($cleanNpwp, 5, 3) . '.' .
+                                                   substr($cleanNpwp, 8, 1) . '-' .
+                                                   substr($cleanNpwp, 9, 3) . '.' .
+                                                   substr($cleanNpwp, 12, 3);
+                                        }
+
+                                        return $cleanNpwp;
+                                    })
+                                    ->copyable()
+                                    ->placeholder('No NPWP'),
+
                                 Infolists\Components\TextEntry::make('po_suppliers_count')
                                     ->label('Total Purchase Orders')
                                     ->badge()
                                     ->color('success')
                                     ->getStateUsing(fn (Supplier $record): int => $record->poSuppliers()->count()),
+
+                                Infolists\Components\TextEntry::make('')
+                                    ->label('')
+                                    ->state('')
+                                    ->visible(false),
                             ]),
 
                         Infolists\Components\TextEntry::make('alamat')
@@ -293,7 +390,7 @@ class SupplierResource extends Resource
 
     public static function getGloballySearchableAttributes(): array
     {
-        return ['nama', 'email', 'telepon', 'alamat'];
+        return ['nama', 'email', 'telepon', 'alamat', 'npwp'];
     }
 
     public static function getGlobalSearchResultDetails(Model $record): array
@@ -301,6 +398,7 @@ class SupplierResource extends Resource
         return [
             'Email' => $record->email,
             'Phone' => $record->telepon,
+            'NPWP' => $record->formatted_npwp,
         ];
     }
 }

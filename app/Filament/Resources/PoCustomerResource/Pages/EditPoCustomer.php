@@ -3,9 +3,11 @@
 namespace App\Filament\Resources\PoCustomerResource\Pages;
 
 use App\Filament\Resources\PoCustomerResource;
+use App\Models\PoCustomerDetail;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\DB;
+use Filament\Notifications\Notification;
 
 class EditPoCustomer extends EditRecord
 {
@@ -17,7 +19,8 @@ class EditPoCustomer extends EditRecord
     {
         return [
             Actions\ViewAction::make(),
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+                ->visible(fn (): bool => $this->record->canBeDeleted()),
         ];
     }
 
@@ -31,64 +34,79 @@ class EditPoCustomer extends EditRecord
         return 'Customer PO updated successfully';
     }
 
-   protected function mutateFormDataBeforeFill(array $data): array
+    protected function mutateFormDataBeforeFill(array $data): array
     {
-        // Load existing details untuk form
+        // Load existing details untuk form dengan struktur yang benar
         $record = $this->record;
         if ($record->details->count() > 0) {
-            $data['details'] = $record->details->map(function ($detail) {
-                return [
-                    'id' => $detail->id,
-                    'deskripsi' => $detail->deskripsi,
-                    'jumlah' => $detail->jumlah,
-                    'harga_satuan' => $detail->harga_satuan,
-                    'total' => $detail->jumlah * $detail->harga_satuan,
-                ];
-            })->toArray();
+        $details = $record->details->map(function ($detail) {
+            return [
+                'id' => $detail->id,
+                'product_id' => $detail->product_id,
+                'nama_produk' => $detail->nama_produk,
+                'deskripsi' => $detail->deskripsi,
+                'jumlah' => $detail->jumlah, // Pastikan ini ter-load dengan benar
+                'satuan' => $detail->satuan,
+                'harga_satuan' => (float) $detail['harga_satuan'],
+                'total' => (float) $detail['total'],
+                'keterangan' => $detail['keterangan'] ?? null,
+            ];
+        })->toArray();
+        $data['details'] = $details;
+
+        // Send detailed success notification
+        Notification::make()
+            ->title('PO Updated Successfully!')
+            ->body("PO #{$record->nomor_po} has been updated with " . count($details) . " items.")
+            ->success()
+            ->duration(5000)
+            ->send();
         }
 
         return $data;
     }
-    protected function mutateFormDataBeforeSave(array $data): array
+
+    /**
+     * Handle validation errors with better user feedback
+     */
+    protected function getFormActions(): array
     {
-        $totalSebelumPajak = 0;
-        if (isset($data['details'])) {
-            foreach ($data['details'] as &$detail) {
-                $detail['total'] = $detail['jumlah'] * $detail['harga_satuan'];
-                $totalSebelumPajak += $detail['total'];
+        return array_merge(parent::getFormActions(), [
+            // Add custom validation action if needed
+        ]);
+    }
+
+    /**
+     * Custom validation before save
+     */
+    protected function beforeSave(): void
+    {
+        $data = $this->data;
+
+        // Validate that we have at least one detail
+        if (empty($data['details']) || count($data['details']) === 0) {
+            Notification::make()
+                ->title('Validation Error')
+                ->body('Please add at least one item to the PO.')
+                ->danger()
+                ->send();
+
+            $this->halt();
+        }
+
+        // Validate PO type consistency
+        if (!empty($data['details'])) {
+            foreach ($data['details'] as $detail) {
+                if ($data['jenis_po'] === 'Product' && empty($detail['product_id'])) {
+                    Notification::make()
+                        ->title('Validation Error')
+                        ->body('Product PO must have valid products selected.')
+                        ->danger()
+                        ->send();
+
+                    $this->halt();
+                }
             }
         }
-        $data['total_sebelum_pajak'] = $totalSebelumPajak;
-        $data['total_pajak'] = $totalSebelumPajak * 0.11;
-        return $data;
-    }
-
-    protected function afterSave(): void
-    {
-        // Setelah save, pastikan details juga tersimpan dengan benar
-        $record = $this->record;
-        $details = $this->data['details'] ?? [];
-
-        // Delete existing details first
-        $record->details()->delete();
-
-        // Create new details
-        foreach ($details as $detail) {
-            $record->details()->create([
-                'deskripsi' => $detail['deskripsi'],
-                'jumlah' => $detail['jumlah'],
-                'harga_satuan' => $detail['harga_satuan'],
-                'total' => $detail['jumlah'] * $detail['harga_satuan'],
-            ]);
-        }
-
-        // Recalculate totals
-        $totalSebelumPajak = $record->details()->sum(DB::raw('jumlah * harga_satuan'));
-        $totalPajak = $totalSebelumPajak * 0.11;
-
-        $record->update([
-            'total_sebelum_pajak' => $totalSebelumPajak,
-            'total_pajak' => $totalPajak,
-        ]);
     }
 }

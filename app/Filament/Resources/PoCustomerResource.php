@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PoCustomerResource\Pages;
 use App\Models\Customer;
 use App\Models\PoCustomer;
+use App\Models\Product;
 use App\Models\User;
 use App\Enums\PoStatus;
 use Filament\Forms;
@@ -17,6 +18,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Illuminate\Support\Facades\Storage;
 
 class PoCustomerResource extends Resource
 {
@@ -34,18 +36,15 @@ class PoCustomerResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
-    // Method to display notification badge in sidebar
     public static function getNavigationBadge(): ?string
     {
         $pendingCount = static::getModel()::where('status_po', PoStatus::PENDING->value)->count();
-
-        return $pendingCount >= 0 ? (string) $pendingCount : null;
+        return $pendingCount > 0 ? (string) $pendingCount : null;
     }
 
-    // Method to set badge color
     public static function getNavigationBadgeColor(): ?string
     {
-        return 'primary'; // Can also be 'danger', 'success', 'info', etc.
+        return 'primary';
     }
 
     public static function form(Form $form): Form
@@ -56,11 +55,11 @@ class PoCustomerResource extends Resource
                     ->schema([
                         Forms\Components\TextInput::make('nomor_po')
                             ->label('PO Number')
-                            ->disabled()
-                            ->dehydrated(false)
-                            ->placeholder('Will be generated automatically'),
+                            ->required()
+                            ->unique(ignoreRecord: true)
+                            ->placeholder('Enter PO Number')
+                            ->helperText('Enter unique PO number manually'),
 
-                        // Fix Customer Select - use relationship
                         Forms\Components\Select::make('id_customer')
                             ->label('Customer')
                             ->relationship('customer', 'nama')
@@ -80,106 +79,355 @@ class PoCustomerResource extends Resource
                         Forms\Components\Select::make('jenis_po')
                             ->label('PO Type')
                             ->options([
-                                'Product' => 'Product',
-                                'Service' => 'Service',
+                                'Product' => '📦 Product PO',
+                                'Service' => '🛠️ Service PO',
                             ])
                             ->required()
-                            ->native(false),
+                            ->native(false)
+                            ->live()
+                            ->afterStateUpdated(function (Set $set) {
+                                // Reset details saat jenis PO berubah
+                                $set('details', []);
+                                self::updateTotals([], $set);
+                            }),
 
-                        // Fix Status PO - using PoStatus enum
                         Forms\Components\Select::make('status_po')
                             ->label('PO Status')
                             ->options(PoStatus::getOptions())
                             ->default(PoStatus::DRAFT->value)
                             ->required()
                             ->native(false),
+
+                        Forms\Components\TextInput::make('tax_rate')
+                            ->label('Tax Rate (%)')
+                            ->numeric()
+                            ->suffix('%')
+                            ->default(11.00)
+                            ->step(0.01)
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->required()
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                self::updateTotals($get, $set);
+                            }),
+
+                        Forms\Components\FileUpload::make('attachment_path')
+                            ->label('Attachment (PDF)')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->directory('po-customer-attachments')
+                            ->disk('public')
+                            ->visibility('public')
+                            ->downloadable()
+                            ->previewable()
+                            ->openable()
+                            ->maxSize(10240)
+                            ->helperText('Upload PDF file as reference (Max: 10MB)')
+                            ->columnSpanFull(),
+
+                        Forms\Components\Textarea::make('keterangan')
+                            ->label('Notes/Remarks')
+                            ->rows(3)
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
 
                 Section::make('Item Details')
                     ->schema([
+                        Forms\Components\Placeholder::make('jenis_po_info')
+                            ->label('')
+                            ->content(function (Get $get): string {
+                                $jenisPo = $get('jenis_po');
+                                if ($jenisPo === 'Product') {
+                                    return '📦 Product Items - Select products from inventory with quantity';
+                                } elseif ($jenisPo === 'Service') {
+                                    return '🛠️ Service Items - Add custom services with pricing';
+                                } else {
+                                    return '⚠️ Please select PO Type first';
+                                }
+                            })
+                            ->columnSpanFull(),
+
                         Repeater::make('details')
                             ->relationship('details')
-                            ->rules(['required', new \App\Rules\ValidPoDetails()])
                             ->schema([
-                                Forms\Components\Textarea::make('deskripsi')
-                                    ->label('Item/Service Description')
-                                    ->required()
-                                    ->rows(2)
+                                // PRODUCT FIELDS - Tampil ketika jenis_po = Product
+                                Forms\Components\Select::make('product_id')
+                                    ->label('🔍 Select Product')
+                                    ->options(function () {
+                                        return Product::active()
+                                            ->get()
+                                            ->pluck('name', 'id')
+                                            ->toArray();
+                                    })
+                                    ->searchable()
+                                    ->native(false)
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                        if ($state) {
+                                            $product = Product::find($state);
+                                            if ($product) {
+                                                $set('nama_produk', $product->name);
+                                                $set('harga_satuan', $product->unit_price);
+                                                $set('satuan', $product->unit);
+                                                $set('deskripsi', $product->description ?? '');
+
+                                                // Calculate total with current quantity
+                                                $qty = (float) ($get('jumlah') ?? 1);
+                                                $set('total', $qty * $product->unit_price);
+                                            }
+                                        } else {
+                                            $set('nama_produk', '');
+                                            $set('harga_satuan', 0);
+                                            $set('satuan', '');
+                                            $set('deskripsi', '');
+                                            $set('total', 0);
+                                        }
+
+                                        // Update form totals
+                                        self::updateTotalsFromRepeater($get, $set);
+                                    })
+                                    ->visible(fn (Get $get) => $get('../../jenis_po') === 'Product')
+                                    ->required(fn (Get $get) => $get('../../jenis_po') === 'Product')
                                     ->columnSpanFull(),
 
-                                Forms\Components\TextInput::make('jumlah')
-                                    ->label('Quantity')
-                                    ->numeric()
+                                // SERVICE FIELDS - Tampil ketika jenis_po = Service
+                                Forms\Components\TextInput::make('nama_produk')
+                                    ->label('🛠️ Service Name')
                                     ->required()
+                                    ->placeholder('Enter service name')
+                                    ->visible(fn (Get $get) => $get('../../jenis_po') === 'Service')
+                                    ->columnSpanFull(),
+
+                                // PRODUCT SPECIFIC FIELDS - Fixed quantity handling
+                                Forms\Components\Grid::make(4)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('jumlah')
+                                            ->label('Quantity')
+                                            ->numeric()
+                                            ->default(1)
+                                            ->minValue(1)
+                                            ->step(1)
+                                            ->live(onBlur: true)
+                                            ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                                                $jumlah = (float) ($state ?? 1);
+                                                $harga = (float) ($get('harga_satuan') ?? 0);
+                                                $total = $jumlah * $harga;
+                                                $set('total', $total);
+
+                                                // Update form totals
+                                                self::updateTotalsFromRepeater($get, $set);
+                                            })
+                                            ->required(),
+
+                                        Forms\Components\TextInput::make('satuan')
+                                            ->label('Unit')
+                                            ->placeholder('e.g., pcs, kg, m²')
+                                            ->readOnly()
+                                            ->dehydrated(),
+
+                                        Forms\Components\TextInput::make('harga_satuan')
+                                            ->label('Unit Price')
+                                            ->numeric()
+                                            ->prefix('Rp')
+                                            ->step(0.01)
+                                            ->live(onBlur: true)
+                                            ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                                                $harga = (float) ($state ?? 0);
+                                                $jumlah = (float) ($get('jumlah') ?? 1);
+                                                $total = $jumlah * $harga;
+                                                $set('total', $total);
+
+                                                // Update form totals
+                                                self::updateTotalsFromRepeater($get, $set);
+                                            })
+                                            ->readOnly(fn (Get $get) => !empty($get('product_id')))
+                                            ->dehydrated(),
+
+                                        Forms\Components\TextInput::make('total')
+                                            ->label('💰 Total')
+                                            ->numeric()
+                                            ->prefix('Rp')
+                                            ->readOnly()
+                                            ->dehydrated()
+                                            ->extraAttributes(['class' => 'font-bold text-green-600']),
+                                    ])
+                                    ->visible(fn (Get $get) => $get('../../jenis_po') === 'Product'),
+
+                                // SERVICE SPECIFIC FIELDS
+                                Forms\Components\Grid::make(2)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('harga_satuan')
+                                            ->label('Service Price')
+                                            ->numeric()
+                                            ->prefix('Rp')
+                                            ->step(0.01)
+                                            ->live(onBlur: true)
+                                            ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                                                $harga = (float) ($state ?? 0);
+                                                $set('total', $harga); // Service qty always 1
+
+                                                // Update form totals
+                                                self::updateTotalsFromRepeater($get, $set);
+                                            })
+                                            ->required(),
+
+                                        Forms\Components\TextInput::make('total')
+                                            ->label('💰 Total')
+                                            ->numeric()
+                                            ->prefix('Rp')
+                                            ->readOnly()
+                                            ->dehydrated()
+                                            ->extraAttributes(['class' => 'font-bold text-green-600']),
+                                    ])
+                                    ->visible(fn (Get $get) => $get('../../jenis_po') === 'Service'),
+
+                                Forms\Components\Textarea::make('deskripsi')
+                                    ->label('Description')
+                                    ->rows(2)
+                                    ->placeholder(function (Get $get): string {
+                                        return $get('../../jenis_po') === 'Product'
+                                            ? 'Product description will be filled automatically'
+                                            : 'Describe the service in detail';
+                                    })
+                                    ->readOnly(fn (Get $get) => $get('../../jenis_po') === 'Product' && !empty($get('product_id')))
+                                    ->dehydrated()
+                                    ->columnSpanFull(),
+
+                                Forms\Components\Textarea::make('keterangan')
+                                    ->label('Additional Notes')
+                                    ->rows(2)
+                                    ->placeholder('Add any additional notes')
+                                    ->columnSpanFull(),
+
+                                // Hidden fields untuk service - Pindah ke bawah dan perbaiki logic
+                                Forms\Components\Hidden::make('product_id')
+                                    ->default(null)
+                                    ->visible(fn (Get $get) => $get('../../jenis_po') === 'Service')
+                                    ->dehydrated(fn (Get $get) => $get('../../jenis_po') === 'Service'),
+
+                                Forms\Components\Hidden::make('satuan')
+                                    ->default('service')
+                                    ->visible(fn (Get $get) => $get('../../jenis_po') === 'Service')
+                                    ->dehydrated(fn (Get $get) => $get('../../jenis_po') === 'Service'),
+
+                                Forms\Components\Hidden::make('jumlah')
                                     ->default(1)
-                                    ->minValue(1)
-                                    ->live(onBlur: true)
-                                    ->afterStateUpdated(function (Get $get, Set $set) {
-                                        $jumlah = (float) $get('jumlah') ?? 0;
-                                        $harga = (float) $get('harga_satuan') ?? 0;
-                                        $set('total', $jumlah * $harga);
-                                    }),
-
-                                Forms\Components\TextInput::make('harga_satuan')
-                                    ->label('Unit Price')
-                                    ->numeric()
-                                    ->required()
-                                    ->prefix('Rp')
-                                    ->live(onBlur: true)
-                                    ->afterStateUpdated(function (Get $get, Set $set) {
-                                        $jumlah = (float) $get('jumlah') ?? 0;
-                                        $harga = (float) $get('harga_satuan') ?? 0;
-                                        $set('total', $jumlah * $harga);
-                                    }),
-
-                                Forms\Components\TextInput::make('total')
-                                    ->label('Total')
-                                    ->numeric()
-                                    ->prefix('Rp')
-                                    ->disabled()
-                                    ->dehydrated(),
+                                    ->visible(fn (Get $get) => $get('../../jenis_po') === 'Service')
+                                    ->dehydrated(fn (Get $get) => $get('../../jenis_po') === 'Service'),
                             ])
-                            ->columns(3)
-                            ->addActionLabel('Add Item')
+                            ->columns(1)
+                            ->addActionLabel(function (Get $get): string {
+                                $jenisPo = $get('jenis_po');
+                                if ($jenisPo === 'Product') {
+                                    return '📦 Add Product';
+                                } else if ($jenisPo === 'Service') {
+                                    return '🛠️ Add Service';
+                                } else {
+                                    return '➕ Add Item';
+                                }
+                            })
                             ->reorderableWithButtons()
                             ->collapsible()
-                            ->itemLabel(fn (array $state): ?string => $state['deskripsi'] ?? null)
+                            ->cloneable()
+                            ->itemLabel(function (array $state, Get $get): ?string {
+                                $jenisPo = $get('jenis_po');
+                                $nama = $state['nama_produk'] ?? 'Unnamed Item';
+
+                                if ($jenisPo === 'Product') {
+                                    $qty = $state['jumlah'] ?? 1;
+                                    $unit = $state['satuan'] ?? 'pcs';
+                                    return "📦 {$nama} ({$qty} {$unit})";
+                                } else {
+                                    return "🛠️ {$nama}";
+                                }
+                            })
                             ->live()
+                            ->visible(fn (Get $get): bool => !empty($get('jenis_po')))
                             ->afterStateUpdated(function (Get $get, Set $set) {
                                 self::updateTotals($get, $set);
                             })
                             ->deleteAction(
-                                fn (Forms\Components\Actions\Action $action) => $action->after(fn (Get $get, Set $set) => self::updateTotals($get, $set))
+                                fn (Forms\Components\Actions\Action $action) => $action->after(
+                                    fn (Get $get, Set $set) => self::updateTotals($get, $set)
+                                )
                             ),
                     ]),
 
-                Section::make('Total & Tax')
+                Section::make('💰 Total & Tax Calculation')
                     ->schema([
                         Forms\Components\TextInput::make('total_sebelum_pajak')
-                            ->label('Subtotal')
+                            ->label('Subtotal (Before Tax)')
                             ->numeric()
                             ->prefix('Rp')
-                            ->disabled()
-                            ->dehydrated(),
+                            ->readOnly()
+                            ->dehydrated()
+                            ->extraAttributes(['class' => 'font-semibold']),
 
                         Forms\Components\TextInput::make('total_pajak')
-                            ->label('Tax (11%)')
+                            ->label('Tax Amount')
                             ->numeric()
                             ->prefix('Rp')
-                            ->disabled()
-                            ->dehydrated(),
+                            ->readOnly()
+                            ->dehydrated()
+                            ->extraAttributes(['class' => 'font-semibold']),
 
                         Forms\Components\Placeholder::make('total_keseluruhan')
-                            ->label('Grand Total')
+                            ->label('🏆 Grand Total')
                             ->content(function (Get $get): string {
-                                $totalSebelumPajak = (float) $get('total_sebelum_pajak') ?? 0;
-                                $totalPajak = (float) $get('total_pajak') ?? 0;
-                                return 'Rp ' . number_format($totalSebelumPajak + $totalPajak, 0, ',', '.');
-                            }),
+                                $totalSebelumPajak = (float) ($get('total_sebelum_pajak') ?? 0);
+                                $totalPajak = (float) ($get('total_pajak') ?? 0);
+                                $grandTotal = $totalSebelumPajak + $totalPajak;
+                                return 'Rp ' . number_format($grandTotal, 0, ',', '.');
+                            })
+                            ->extraAttributes(['class' => 'text-xl font-bold text-green-600']),
                     ])
                     ->columns(3),
             ]);
+    }
+
+    // Helper method untuk update totals dari dalam repeater - FIXED
+    protected static function updateTotalsFromRepeater(Get $get, Set $set): void
+    {
+        // Get all details from the parent context
+        $allDetails = $get('../../details') ?? [];
+        $taxRate = (float) ($get('../../tax_rate') ?? 11) / 100;
+
+        // Calculate subtotal
+        $subtotal = 0;
+        foreach ($allDetails as $detail) {
+            $subtotal += (float) ($detail['total'] ?? 0);
+        }
+
+        $pajak = $subtotal * $taxRate;
+
+        $set('../../total_sebelum_pajak', $subtotal);
+        $set('../../total_pajak', $pajak);
+    }
+
+    // Helper method utama untuk update totals - FIXED
+    protected static function updateTotals(Get|array $get, Set $set): void
+    {
+        if (is_array($get)) {
+            // Handle empty array case
+            $details = [];
+            $taxRate = 11;
+        } else {
+            $details = $get('details') ?? [];
+            $taxRate = (float) ($get('tax_rate') ?? 11);
+        }
+
+        $subtotal = 0;
+
+        foreach ($details as $detail) {
+            $subtotal += (float) ($detail['total'] ?? 0);
+        }
+
+        $taxRate = $taxRate / 100; // Convert ke desimal
+        $pajak = $subtotal * $taxRate;
+
+        $set('total_sebelum_pajak', $subtotal);
+        $set('total_pajak', $pajak);
     }
 
     public static function table(Table $table): Table
@@ -204,9 +452,17 @@ class PoCustomerResource extends Resource
                 Tables\Columns\TextColumn::make('jenis_po')
                     ->label('PO Type')
                     ->badge()
-                    ->color('info'),
+                    ->color(fn (string $state): string => match ($state) {
+                        'Product' => 'info',
+                        'Service' => 'warning',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'Product' => '📦 Product',
+                        'Service' => '🛠️ Service',
+                        default => $state,
+                    }),
 
-                // Fix Status column - use enum
                 Tables\Columns\TextColumn::make('status_po')
                     ->label('Status')
                     ->badge()
@@ -223,6 +479,18 @@ class PoCustomerResource extends Resource
                         return PoStatus::from($state)->getColor();
                     }),
 
+                Tables\Columns\IconColumn::make('attachment_path')
+                    ->label('📎')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-paper-clip')
+                    ->falseIcon('')
+                    ->getStateUsing(fn ($record) => !empty($record->attachment_path)),
+
+                Tables\Columns\TextColumn::make('tax_rate')
+                    ->label('Tax Rate')
+                    ->suffix('%')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
                     ->money('IDR'),
@@ -238,7 +506,6 @@ class PoCustomerResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                // Fix filter - use enum
                 Tables\Filters\SelectFilter::make('status_po')
                     ->label('Status')
                     ->options(PoStatus::getOptions()),
@@ -249,11 +516,26 @@ class PoCustomerResource extends Resource
                         'Product' => 'Product',
                         'Service' => 'Service',
                     ]),
+
+                Tables\Filters\Filter::make('has_attachment')
+                    ->label('Has Attachment')
+                    ->query(fn (Builder $query): Builder => $query->whereNotNull('attachment_path')),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make()
                     ->visible(fn (PoCustomer $record): bool => $record->canBeEdited()),
+
+                Tables\Actions\Action::make('download_attachment')
+                    ->label('Download')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('info')
+                    ->visible(fn (PoCustomer $record): bool => $record->hasAttachment())
+                    ->action(function (PoCustomer $record) {
+                        $path = Storage::disk('public')->path($record->attachment_path);
+                        $filename = $record->attachment_name ?? 'attachment.pdf';
+                        return response()->download($path, $filename);
+                    }),
 
                 Tables\Actions\Action::make('approve')
                     ->label('Approve')
@@ -311,22 +593,6 @@ class PoCustomerResource extends Resource
         ];
     }
 
-    protected static function updateTotals(Get $get, Set $set): void
-    {
-        $details = $get('details') ?? [];
-        $subtotal = 0;
-
-        foreach ($details as $detail) {
-            $subtotal += (float) ($detail['total'] ?? 0);
-        }
-
-        $pajak = $subtotal * 0.11; // 11% tax
-
-        $set('total_sebelum_pajak', $subtotal);
-        $set('total_pajak', $pajak);
-    }
-
-    // Add this method for debugging and performance
     public static function getGlobalSearchEloquentQuery(): Builder
     {
         return parent::getGlobalSearchEloquentQuery()->with(['customer', 'user']);

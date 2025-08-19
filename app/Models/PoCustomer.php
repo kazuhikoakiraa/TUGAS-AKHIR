@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Enums\PoStatus; // Import enum
+use App\Enums\PoStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -26,13 +26,18 @@ class PoCustomer extends Model
         'status_po',
         'total_sebelum_pajak',
         'total_pajak',
+        'tax_rate',
+        'attachment_path', // TAMBAH - Path file attachment
+        'attachment_name', // TAMBAH - Original filename
+        'keterangan', // TAMBAH - Notes/remarks
     ];
 
     protected $casts = [
         'tanggal_po' => 'date',
         'total_sebelum_pajak' => 'decimal:2',
         'total_pajak' => 'decimal:2',
-        'status_po' => PoStatus::class, // TAMBAHKAN INI - Cast enum
+        'tax_rate' => 'decimal:2',
+        'status_po' => PoStatus::class,
     ];
 
     public function customer(): BelongsTo
@@ -60,7 +65,7 @@ class PoCustomer extends Model
         return $this->hasOne(Invoice::class, 'id_po_customer');
     }
 
-
+    // Accessor untuk total keseluruhan
     public function getTotalAttribute()
     {
         return $this->total_sebelum_pajak + $this->total_pajak;
@@ -71,21 +76,20 @@ class PoCustomer extends Model
         parent::boot();
 
         static::creating(function ($po) {
-            if (empty($po->nomor_po)) {
-                $po->nomor_po = self::generateNomorPo();
+            // Set default tax rate jika tidak ada
+            if (empty($po->tax_rate)) {
+                $po->tax_rate = 11.00; // Default 11% PPN
             }
         });
 
-        // PERBAIKAN: Lebih aman untuk menghindari infinite loop
         static::saved(function ($po) {
-            // Hanya update jika bukan dari proses update totals itu sendiri
             if (!$po->isDirty(['total_sebelum_pajak', 'total_pajak']) && !$po->updating_totals) {
                 $po->updateTotalsWithoutEvents();
             }
         });
     }
 
-     // Accessor untuk total keseluruhan
+    // Accessor untuk total keseluruhan
     protected function total(): Attribute
     {
         return Attribute::make(
@@ -93,33 +97,12 @@ class PoCustomer extends Model
         );
     }
 
-    // Event untuk recalculate total saat model di-save
-    protected static function booted()
-    {
-        static::saving(function ($poSupplier) {
-            // Hitung ulang total dari details jika ada
-            if ($poSupplier->exists) {
-                $totalSebelumPajak = $poSupplier->details()->sum(DB::raw('jumlah * harga_satuan'));
-                $poSupplier->total_sebelum_pajak = $totalSebelumPajak;
-                $poSupplier->total_pajak = $totalSebelumPajak * 0.11;
-            }
-        });
-    }
-
-
-    public static function generateNomorPo(): string
-    {
-        $today = now()->format('Ymd');
-        $count = static::whereDate('created_at', today())->count() + 1;
-
-        return 'POC-' . $today . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
-    }
-
-    // PERBAIKAN: Method untuk update totals tanpa trigger events
+    // Method untuk update totals dengan dynamic tax rate
     public function updateTotalsWithoutEvents(): void
     {
         $totalSebelumPajak = $this->details()->sum('total');
-        $totalPajak = $totalSebelumPajak * 0.11;
+        $taxRate = $this->tax_rate / 100; // Convert persen ke desimal
+        $totalPajak = $totalSebelumPajak * $taxRate;
 
         // Set flag untuk mencegah loop
         $this->updating_totals = true;
@@ -143,6 +126,27 @@ class PoCustomer extends Model
         $this->updateTotalsWithoutEvents();
     }
 
+    // Helper method untuk mendapatkan tax rate dalam format display
+    public function getFormattedTaxRateAttribute(): string
+    {
+        return $this->tax_rate . '%';
+    }
+
+    // Helper methods untuk attachment
+    public function hasAttachment(): bool
+    {
+        return !empty($this->attachment_path);
+    }
+
+    public function getAttachmentUrlAttribute(): ?string
+    {
+        if ($this->hasAttachment()) {
+            return asset('storage/' . $this->attachment_path);
+        }
+        return null;
+    }
+
+    // Scope methods
     public function scopeByStatus($query, $status)
     {
         return $query->where('status_po', $status);
@@ -153,7 +157,7 @@ class PoCustomer extends Model
         return $query->where('jenis_po', $jenis);
     }
 
-    // PERBAIKAN: Gunakan enum untuk comparison
+    // Status check methods
     public function canBeEdited(): bool
     {
         return in_array($this->status_po, [PoStatus::DRAFT, PoStatus::PENDING]);
@@ -164,7 +168,6 @@ class PoCustomer extends Model
         return $this->status_po === PoStatus::DRAFT;
     }
 
-    // TAMBAHAN: Helper methods untuk status
     public function isDraft(): bool
     {
         return $this->status_po === PoStatus::DRAFT;
@@ -185,29 +188,30 @@ class PoCustomer extends Model
         return $this->status_po === PoStatus::REJECTED;
     }
 
+    // Check methods untuk related documents
+    public function hasSuratJalan(): bool
+    {
+        return $this->suratJalan()->exists();
+    }
 
-/**
- * Check if this PO has surat jalan.
- */
-public function hasSuratJalan(): bool
-{
-    return $this->suratJalan()->exists();
-}
-
-
-    /**
-     * Check if this PO has invoice.
-     */
     public function hasInvoice(): bool
     {
         return $this->invoice()->exists();
     }
 
-    /**
-     * Check if PO can generate invoice
-     */
     public function canGenerateInvoice(): bool
     {
         return $this->status_po === PoStatus::APPROVED && !$this->hasInvoice();
+    }
+
+    // Helper method untuk check jenis PO
+    public function isProductPo(): bool
+    {
+        return $this->jenis_po === 'Product';
+    }
+
+    public function isServicePo(): bool
+    {
+        return $this->jenis_po === 'Service';
     }
 }

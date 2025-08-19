@@ -4,258 +4,336 @@
     <meta charset="utf-8">
     <title>Quotation {{ $quotation->nomor_penawaran }}</title>
     <style>
+        @page {
+            margin: 20mm;
+            size: A4;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: Arial, sans-serif;
             font-size: 12px;
             line-height: 1.4;
-            color: #333;
+            color: #000;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            background-color: #fff;
         }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 3px solid #2563eb;
-            padding-bottom: 20px;
+
+        /* Company Header/Kop */
+        .company-header {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
         }
-        .header h1 {
-            color: #2563eb;
-            font-size: 28px;
-            margin: 0 0 10px 0;
+
+        .company-left {
+            display: flex;
+            align-items: flex-start;
         }
-        .header p {
-            color: #6b7280;
-            margin: 0;
+
+        .company-logo {
+            margin-right: 15px;
         }
+
+        .company-logo img {
+            max-width: 80px;
+            max-height: 80px;
+        }
+
         .company-info {
-            text-align: center;
-            margin-bottom: 30px;
+            flex: 1;
         }
-        .quotation-details {
-            display: table;
-            width: 100%;
-            margin-bottom: 30px;
-        }
-        .quotation-details .left,
-        .quotation-details .right {
-            display: table-cell;
-            width: 50%;
-            vertical-align: top;
-        }
-        .quotation-details .right {
-            text-align: right;
-        }
-        .info-box {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-        }
-        .info-box h3 {
-            color: #1f2937;
-            margin: 0 0 10px 0;
-            font-size: 14px;
-        }
-        .info-row {
-            margin-bottom: 8px;
-        }
-        .info-label {
-            font-weight: bold;
-            color: #4b5563;
-            display: inline-block;
-            width: 120px;
-        }
-        .quotation-number {
+
+        .company-name {
             font-size: 18px;
             font-weight: bold;
-            color: #2563eb;
+            color: #4a90e2;
+            margin: 0 0 5px 0;
+            letter-spacing: 1px;
         }
-        .description-section {
-            margin: 30px 0;
+
+        .company-address {
+            font-size: 10px;
+            color: #000;
+            line-height: 1.4;
+            margin-bottom: 3px;
         }
-        .description-section h3 {
-            background-color: #2563eb;
-            color: white;
-            padding: 10px;
-            margin: 0 0 15px 0;
-            font-size: 16px;
+
+        .company-contact {
+            font-size: 10px;
+            color: #000;
         }
-        .description-content {
-            padding: 15px;
-            background-color: #f9fafb;
-            border: 1px solid #e5e7eb;
-            min-height: 100px;
+
+        .company-contact a {
+            color: #4a90e2;
+            text-decoration: none;
         }
-        .price-section {
-            margin-top: 30px;
+
+        /* Separator Line */
+        .separator-line {
+            border-bottom: 3px solid #4a90e2;
+            margin-bottom: 20px;
+        }
+
+        /* Header Section */
+        .header {
+            margin-bottom: 20px;
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .to-section {
+            flex: 1;
+        }
+
+        .date-section {
+            text-align: right;
+            min-width: 200px;
+        }
+
+        .company-info-customer {
+            margin-bottom: 15px;
+        }
+
+        .company-name-customer {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .company-address-customer {
+            font-size: 11px;
+            line-height: 1.3;
+            margin-bottom: 10px;
+        }
+
+        .attn {
+            margin-bottom: 15px;
+        }
+
+        /* Subject Section */
+        .subject {
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        /* Items Table */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            border: 1px solid #000;
+        }
+
+        .items-table th,
+        .items-table td {
+            border: 1px solid #000;
+            padding: 8px 6px;
+            text-align: left;
+            font-size: 11px;
+        }
+
+        .items-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .items-table .col-no {
+            width: 5%;
+            text-align: center;
+        }
+
+        .items-table .col-item {
+            width: 35%;
+        }
+
+        .items-table .col-qty {
+            width: 8%;
+            text-align: center;
+        }
+
+        .items-table .col-unit {
+            width: 8%;
+            text-align: center;
+        }
+
+        .items-table .col-price {
+            width: 22%;
             text-align: right;
         }
-        .price-table {
-            width: 300px;
-            margin-left: auto;
-            border-collapse: collapse;
+
+        .items-table .col-total {
+            width: 22%;
+            text-align: right;
         }
-        .price-table td {
-            padding: 8px 12px;
-            border: 1px solid #d1d5db;
-        }
-        .price-table .label {
-            background-color: #f3f4f6;
-            font-weight: bold;
-        }
-        .price-table .total {
-            background-color: #2563eb;
-            color: white;
-            font-weight: bold;
-            font-size: 16px;
-        }
-        .terms {
-            margin-top: 40px;
-            padding: 20px;
-            background-color: #fef3c7;
-            border-left: 4px solid #f59e0b;
-        }
-        .terms h4 {
-            color: #92400e;
-            margin: 0 0 10px 0;
-        }
-        .terms p {
-            margin: 5px 0;
-            color: #78350f;
-        }
-        .footer {
-            margin-top: 40px;
-            text-align: center;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
-            color: #6b7280;
-            font-size: 10px;
-        }
-        .signature {
-            margin-top: 50px;
-        }
-        .signature-box {
-            display: table;
-            width: 100%;
-        }
-        .signature-left,
-        .signature-right {
-            display: table-cell;
-            width: 50%;
-            vertical-align: top;
+
+        .text-center {
             text-align: center;
         }
-        .signature-line {
-            border-top: 1px solid #333;
-            margin-top: 60px;
-            padding-top: 5px;
-            width: 200px;
-            margin-left: auto;
-            margin-right: auto;
+
+        .text-right {
+            text-align: right;
+        }
+
+        /* Terms Section */
+        .terms-section {
+            margin-bottom: 30px;
+        }
+
+        .terms-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .terms-content {
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .terms-content p {
+            margin: 3px 0;
+        }
+
+        /* Signature Section */
+        .signature-section {
+            margin-top: 30px;
+            text-align: left;
+        }
+
+        .signature-text {
+            margin-bottom: 50px;
+        }
+
+        .company-signature {
+            font-weight: bold;
+        }
+
+        /* Utilities */
+        .money {
+            font-family: Arial, sans-serif;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Company Header/Kop - Baris 1 -->
+    <div class="company-header">
+        <div class="company-left">
+            <div class="company-logo">
+                <img src="{{ public_path('images/logo.png') }}" alt="Company Logo" />
+            </div>
+            <div class="company-info">
+                <h1 class="company-name">PT. SENTRA ALAM ANANDANA</h1>
+                <div class="company-address">
+                    Jl. Pelita 1 Ujung No. 36 Labuhan Ratu, Kedaton, Bandar Lampung
+                </div>
+                <div class="company-contact">
+                    0822 8258 4263, email : <a href="mailto:sales.sentra@sentra-alam.com">sales.sentra@sentra-alam.com</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Separator Line - Baris 2 -->
+    <div class="separator-line"></div>
+
+    <!-- Header - Baris 3 -->
     <div class="header">
-        <h1>QUOTATION</h1>
-        <p>{{ config('app.name') }} - Business Quotation</p>
-    </div>
-
-    <div class="company-info">
-        <h3>{{ config('app.name') }}</h3>
-        <p>Your Business Address Here</p>
-        <p>Phone: +62 XXX XXX XXXX | Email: info@company.com</p>
-    </div>
-
-    <div class="quotation-details">
-        <div class="left">
-            <div class="info-box">
-                <h3>Bill To:</h3>
-                <div><strong>{{ $customer->nama }}</strong></div>
-                <div>{{ $customer->alamat }}</div>
-                <div>Phone: {{ $customer->telepon }}</div>
-                <div>Email: {{ $customer->email }}</div>
+        <div class="header-row">
+            <div class="to-section">
+                <strong>To :</strong><br>
+                <div class="company-info-customer">
+                    <div class="company-name-customer">{{ $quotation->customer->nama }}</div>
+                    <div class="company-address-customer">{{ $quotation->customer->alamat }}</div>
+                </div>
+                <div class="attn">
+                    <strong>Attn :</strong> {{ $quotation->customer->nama }}
+                </div>
             </div>
-        </div>
-
-        <div class="right">
-            <div class="info-box">
-                <h3>Quotation Details:</h3>
-                <div class="info-row">
-                    <span class="info-label">Number:</span>
-                    <span class="quotation-number">{{ $quotation->nomor_penawaran }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Date:</span>
-                    <span>{{ $quotation->tanggal->format('d F Y') }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Valid Until:</span>
-                    <span>{{ $quotation->tanggal->addDays(30)->format('d F Y') }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Sales Person:</span>
-                    <span>{{ $quotation->user->name }}</span>
-                </div>
+            <div class="date-section">
+                <strong>Quo date :</strong> {{ $quotation->tanggal->format('d F Y') }}<br>
+                <strong>Qtn No :</strong> {{ $quotation->nomor_penawaran }}
             </div>
         </div>
     </div>
 
-    <div class="description-section">
-        <h3>Description of Products/Services</h3>
-        <div class="description-content">
-            {{ $quotation->deskripsi ?: 'No description provided.' }}
-        </div>
+    <!-- Subject -->
+    <div class="subject">
+        <strong>Subject :</strong> {{ $quotation->subject ?? 'Quotation for Products/Services' }}
     </div>
 
-    <div class="price-section">
-        <table class="price-table">
+    <!-- Items Table -->
+    <table class="items-table">
+        <thead>
             <tr>
-                <td class="label">Subtotal:</td>
-                <td>IDR {{ number_format($quotation->harga, 0, ',', '.') }}</td>
+                <th class="col-no">No</th>
+                <th class="col-item">ITEM<br>Pesanan</th>
+                <th class="col-qty">Qty</th>
+                <th class="col-unit">Unit</th>
+                <th class="col-price">Unit Price<br>Rp.</th>
+                <th class="col-total">Total<br>Rp.</th>
             </tr>
+        </thead>
+        <tbody>
+            @foreach($quotation->details as $index => $detail)
             <tr>
-                <td class="label">Tax (0%):</td>
-                <td>IDR 0</td>
+                <td class="col-no text-center">{{ $index + 1 }}.</td>
+                <td class="col-item">
+                    {{ $detail->nama_produk ?: ($detail->product->name ?? 'Product Name') }}
+                    @if($detail->deskripsi)
+                        <br><span style="font-size: 10px; color: #666;">{{ $detail->deskripsi }}</span>
+                    @endif
+                </td>
+                <td class="col-qty text-center">{{ number_format($detail->jumlah, 0) }}</td>
+                <td class="col-unit text-center">{{ $detail->satuan }}</td>
+                <td class="col-price text-right money">{{ number_format($detail->harga_satuan, 0, ',', '.') }}</td>
+                <td class="col-total text-right money">{{ number_format($detail->total, 0, ',', '.') }}</td>
             </tr>
-            <tr>
-                <td class="total">TOTAL:</td>
-                <td class="total">IDR {{ number_format($quotation->harga, 0, ',', '.') }}</td>
-            </tr>
-        </table>
-    </div>
+            @endforeach
+        </tbody>
+    </table>
 
-    <div class="terms">
-        <h4>Terms & Conditions:</h4>
-        <p>• This quotation is valid for 30 days from the date of issue.</p>
-        <p>• Prices are subject to change without prior notice.</p>
-        <p>• Payment terms: Net 30 days from invoice date.</p>
-        <p>• All prices are in Indonesian Rupiah (IDR).</p>
-        <p>• Additional terms and conditions may apply.</p>
-    </div>
-
-    <div class="signature">
-        <div class="signature-box">
-            <div class="signature-left">
-                <div><strong>Customer Acceptance:</strong></div>
-                <div class="signature-line">
-                    <div>{{ $customer->nama }}</div>
-                    <div>Date: _______________</div>
-                </div>
-            </div>
-            <div class="signature-right">
-                <div><strong>Authorized Signature:</strong></div>
-                <div class="signature-line">
-                    <div>{{ $quotation->user->name }}</div>
-                    <div>Date: {{ $quotation->tanggal->format('d F Y') }}</div>
-                </div>
-            </div>
+    <!-- Terms & Conditions -->
+    <div class="terms-section">
+        <div class="terms-title">Terms & Conditions :</div>
+        <div class="terms-content">
+            @if($quotation->terms_conditions)
+                @foreach(explode("\n", $quotation->terms_conditions) as $index => $line)
+                    @if(trim($line))
+                        <p>{{ ($index + 1) }}. {{ trim($line) }}</p>
+                    @endif
+                @endforeach
+            @else
+                <p>1. Harga belum termasuk PPN {{ $quotation->tax_rate ?? 11 }}%</p>
+                <p>2. Tempat Pengiriman : {{ $quotation->customer->nama }}</p>
+                <p>3. Metode Pembayaran : Cash / Tunai,<br>
+                   &nbsp;&nbsp;&nbsp;&nbsp;Acc No : 0098 0100 2824 560 (BRI)<br>
+                   &nbsp;&nbsp;&nbsp;&nbsp;Sentra Alam Anandana</p>
+                <p>4. Delivery Time : 4 – 7 hari setelah pembayaran</p>
+            @endif
         </div>
     </div>
 
-    <div class="footer">
-        <p>Thank you for considering our services. We look forward to working with you!</p>
-        <p>Generated on {{ now()->format('d F Y H:i') }}</p>
+    <!-- Signature -->
+    <div class="signature-section">
+        <div class="signature-text">Salam Hormat,</div>
+        <div class="company-signature">PT. SENTRA ALAM ANANDANA</div>
     </div>
 </body>
 </html>

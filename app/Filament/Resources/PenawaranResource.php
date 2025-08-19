@@ -6,6 +6,7 @@ use App\Filament\Resources\PenawaranResource\Pages;
 use App\Models\Penawaran;
 use App\Models\Customer;
 use App\Models\User;
+use App\Models\Product;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -18,6 +19,10 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Illuminate\Support\Facades\Mail;
 
 class PenawaranResource extends Resource
@@ -40,7 +45,7 @@ class PenawaranResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Quotation Information')
+                Section::make('Quotation Information')
                     ->description('Create a new quotation for customer')
                     ->schema([
                         Forms\Components\Grid::make(3)
@@ -109,33 +114,246 @@ class PenawaranResource extends Resource
                                     ->searchable()
                                     ->prefixIcon('heroicon-m-user-circle'),
                             ]),
-                    ])
-                    ->columns(1)
-                    ->collapsible(),
 
-                Forms\Components\Section::make('Quotation Details')
-                    ->description('Enter quotation description and pricing')
-                    ->schema([
-                        Forms\Components\Textarea::make('deskripsi')
-                            ->label('Description')
-                            ->required()
-                            ->rows(4)
-                            ->placeholder('Enter detailed description of products/services being quoted...')
-                            ->columnSpanFull(),
-
-                        Forms\Components\TextInput::make('harga')
-                            ->label('Total Price')
-                            ->required()
+                        Forms\Components\TextInput::make('tax_rate')
+                            ->label('Tax Rate (%)')
                             ->numeric()
-                            ->prefix('IDR')
+                            ->suffix('%')
+                            ->default(11.00)
                             ->step(0.01)
                             ->minValue(0)
-                            ->placeholder('0.00')
-                            ->prefixIcon('heroicon-m-currency-dollar'),
+                            ->maxValue(100)
+                            ->required()
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                self::updateTotals($get, $set);
+                            }),
                     ])
                     ->columns(1)
                     ->collapsible(),
+
+                Section::make('Product Details')
+                    ->description('Add products to this quotation')
+                    ->schema([
+                        Repeater::make('details')
+                            ->relationship('details')
+                            ->schema([
+                                Forms\Components\Select::make('product_id')
+                                    ->label('📦 Select Product')
+                                    ->options(function () {
+                                        return Product::active()
+                                            ->get()
+                                            ->pluck('name', 'id')
+                                            ->toArray();
+                                    })
+                                    ->searchable()
+                                    ->native(false)
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                        if ($state) {
+                                            $product = Product::find($state);
+                                            if ($product) {
+                                                $set('nama_produk', $product->name);
+                                                $set('harga_satuan', $product->unit_price);
+                                                $set('satuan', $product->unit);
+                                                $set('deskripsi', $product->description ?? '');
+
+                                                // Calculate total with current quantity
+                                                $qty = (float) ($get('jumlah') ?? 1);
+                                                $set('total', $qty * $product->unit_price);
+                                            }
+                                        } else {
+                                            $set('nama_produk', '');
+                                            $set('harga_satuan', 0);
+                                            $set('satuan', 'pcs');
+                                            $set('deskripsi', '');
+                                            $set('total', 0);
+                                        }
+
+                                        // Update form totals
+                                        self::updateTotalsFromRepeater($get, $set);
+                                    })
+                                    ->columnSpanFull(),
+
+                                Forms\Components\Grid::make(4)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('jumlah')
+                                            ->label('Quantity')
+                                            ->numeric()
+                                            ->default(1)
+                                            ->minValue(1)
+                                            ->step(1)
+                                            ->live(onBlur: true)
+                                            ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                                                $jumlah = (float) ($state ?? 1);
+                                                $harga = (float) ($get('harga_satuan') ?? 0);
+                                                $total = $jumlah * $harga;
+                                                $set('total', $total);
+
+                                                // Update form totals
+                                                self::updateTotalsFromRepeater($get, $set);
+                                            })
+                                            ->required(),
+
+                                        Forms\Components\TextInput::make('satuan')
+                                            ->label('Unit')
+                                            ->placeholder('e.g., pcs, kg, m²')
+                                            ->readOnly()
+                                            ->dehydrated(),
+
+                                        Forms\Components\TextInput::make('harga_satuan')
+                                            ->label('Unit Price')
+                                            ->numeric()
+                                            ->prefix('Rp')
+                                            ->step(0.01)
+                                            ->live(onBlur: true)
+                                            ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                                                $harga = (float) ($state ?? 0);
+                                                $jumlah = (float) ($get('jumlah') ?? 1);
+                                                $total = $jumlah * $harga;
+                                                $set('total', $total);
+
+                                                // Update form totals
+                                                self::updateTotalsFromRepeater($get, $set);
+                                            })
+                                            ->readOnly(fn (Get $get) => !empty($get('product_id')))
+                                            ->dehydrated(),
+
+                                        Forms\Components\TextInput::make('total')
+                                            ->label('💰 Total')
+                                            ->numeric()
+                                            ->prefix('Rp')
+                                            ->readOnly()
+                                            ->dehydrated()
+                                            ->extraAttributes(['class' => 'font-bold text-green-600']),
+                                    ]),
+
+                                Forms\Components\Textarea::make('deskripsi')
+                                    ->label('Description')
+                                    ->rows(2)
+                                    ->placeholder('Product description will be filled automatically')
+                                    ->readOnly(fn (Get $get) => !empty($get('product_id')))
+                                    ->dehydrated()
+                                    ->columnSpanFull(),
+
+                                Forms\Components\Textarea::make('keterangan')
+                                    ->label('Additional Notes')
+                                    ->rows(2)
+                                    ->placeholder('Add any additional notes')
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns(1)
+                            ->addActionLabel('📦 Add Product')
+                            ->reorderableWithButtons()
+                            ->collapsible()
+                            ->cloneable()
+                            ->itemLabel(function (array $state): ?string {
+                                $nama = $state['nama_produk'] ?? 'Unnamed Product';
+                                $qty = $state['jumlah'] ?? 1;
+                                $unit = $state['satuan'] ?? 'pcs';
+                                return "📦 {$nama} ({$qty} {$unit})";
+                            })
+                            ->live()
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                self::updateTotals($get, $set);
+                            })
+                            ->deleteAction(
+                                fn (Forms\Components\Actions\Action $action) => $action->after(
+                                    fn (Get $get, Set $set) => self::updateTotals($get, $set)
+                                )
+                            ),
+                    ]),
+
+                Section::make('💰 Total & Tax Calculation')
+                    ->schema([
+                        Forms\Components\TextInput::make('total_sebelum_pajak')
+                            ->label('Subtotal (Before Tax)')
+                            ->numeric()
+                            ->prefix('Rp')
+                            ->readOnly()
+                            ->dehydrated()
+                            ->extraAttributes(['class' => 'font-semibold']),
+
+                        Forms\Components\TextInput::make('total_pajak')
+                            ->label('Tax Amount')
+                            ->numeric()
+                            ->prefix('Rp')
+                            ->readOnly()
+                            ->dehydrated()
+                            ->extraAttributes(['class' => 'font-semibold']),
+
+                        Forms\Components\Placeholder::make('total_keseluruhan')
+                            ->label('🏆 Grand Total')
+                            ->content(function (Get $get): string {
+                                $totalSebelumPajak = (float) ($get('total_sebelum_pajak') ?? 0);
+                                $totalPajak = (float) ($get('total_pajak') ?? 0);
+                                $grandTotal = $totalSebelumPajak + $totalPajak;
+                                return 'Rp ' . number_format($grandTotal, 0, ',', '.');
+                            })
+                            ->extraAttributes(['class' => 'text-xl font-bold text-green-600']),
+                    ])
+                    ->columns(3),
+
+                Section::make('Terms & Conditions')
+                    ->description('Add terms and conditions for this quotation')
+                    ->schema([
+                        Forms\Components\Textarea::make('terms_conditions')
+                            ->label('Terms & Conditions')
+                            ->rows(6)
+                            ->placeholder('Enter terms and conditions...')
+                            ->default("1. Harga belum termasuk PPN 11%\n2. Metode Pembayaran : Cash / Tunai\n3. Delivery Time : 4 – 7 hari setelah pembayaran\n4. Quotation valid for 30 days")
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsible(),
             ]);
+    }
+
+    // Helper method untuk update totals dari dalam repeater
+    protected static function updateTotalsFromRepeater(Get $get, Set $set): void
+    {
+        // Get all details from the parent context
+        $allDetails = $get('../../details') ?? [];
+        $taxRate = (float) ($get('../../tax_rate') ?? 11) / 100;
+
+        // Calculate subtotal
+        $subtotal = 0;
+        foreach ($allDetails as $detail) {
+            $subtotal += (float) ($detail['total'] ?? 0);
+        }
+
+        $pajak = $subtotal * $taxRate;
+        $grandTotal = $subtotal + $pajak;
+
+        $set('../../total_sebelum_pajak', $subtotal);
+        $set('../../total_pajak', $pajak);
+        $set('../../harga', $grandTotal);
+    }
+
+    // Helper method utama untuk update totals
+    protected static function updateTotals(Get|array $get, Set $set): void
+    {
+        if (is_array($get)) {
+            // Handle empty array case
+            $details = [];
+            $taxRate = 11;
+        } else {
+            $details = $get('details') ?? [];
+            $taxRate = (float) ($get('tax_rate') ?? 11);
+        }
+
+        $subtotal = 0;
+
+        foreach ($details as $detail) {
+            $subtotal += (float) ($detail['total'] ?? 0);
+        }
+
+        $taxRate = $taxRate / 100; // Convert ke desimal
+        $pajak = $subtotal * $taxRate;
+        $grandTotal = $subtotal + $pajak;
+
+        $set('total_sebelum_pajak', $subtotal);
+        $set('total_pajak', $pajak);
+        $set('harga', $grandTotal);
     }
 
     public static function table(Table $table): Table
@@ -194,85 +412,46 @@ class PenawaranResource extends Resource
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Updated')
-                    ->dateTime('d M Y H:i')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-    Tables\Filters\SelectFilter::make('status')
-        ->options([
-            'draft' => 'Draft',
-            'sent' => 'Sent',
-            'accepted' => 'Accepted',
-            'rejected' => 'Rejected',
-        ])
-        ->multiple()
-        ->placeholder('Filter by status'),
+                Tables\Filters\SelectFilter::make('status')
+                    ->options([
+                        'draft' => 'Draft',
+                        'sent' => 'Sent',
+                        'accepted' => 'Accepted',
+                        'rejected' => 'Rejected',
+                    ])
+                    ->multiple()
+                    ->placeholder('Filter by status'),
 
-    Tables\Filters\SelectFilter::make('customer')
-        ->relationship('customer', 'nama')
-        ->searchable()
-        ->preload()
-        ->placeholder('Filter by customer'),
+                Tables\Filters\SelectFilter::make('customer')
+                    ->relationship('customer', 'nama')
+                    ->searchable()
+                    ->preload()
+                    ->placeholder('Filter by customer'),
 
-    Tables\Filters\Filter::make('created_at')
-        ->form([
-            Forms\Components\DatePicker::make('created_from')
-                ->label('Created from')
-                ->native(false),
-            Forms\Components\DatePicker::make('created_until')
-                ->label('Created until')
-                ->native(false),
-        ])
-        ->query(function (Builder $query, array $data): Builder {
-            return $query
-                ->when(
-                    $data['created_from'],
-                    fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
-                )
-                ->when(
-                    $data['created_until'],
-                    fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
-                );
-        })
-        ->columns(2),
-
-    Tables\Filters\Filter::make('price_range')
-        ->form([
-            Forms\Components\TextInput::make('price_from')
-                ->label('Price from')
-                ->numeric()
-                ->prefix('IDR'),
-            Forms\Components\TextInput::make('price_until')
-                ->label('Price until')
-                ->numeric()
-                ->prefix('IDR'),
-        ])
-        ->query(function (Builder $query, array $data): Builder {
-            return $query
-                ->when(
-                    $data['price_from'],
-                    fn (Builder $query, $price): Builder => $query->where('harga', '>=', $price),
-                )
-                ->when(
-                    $data['price_until'],
-                    fn (Builder $query, $price): Builder => $query->where('harga', '<=', $price),
-                );
-        })
-        ->columns(2),
-
-    Tables\Filters\SelectFilter::make('user')
-        ->relationship('user', 'name')
-        ->label('Sales Person')
-        ->searchable()
-        ->preload()
-        ->placeholder('Filter by sales person'),
-])
-->filtersFormColumns(2)
-->filtersFormMaxHeight('400px')
+                Tables\Filters\Filter::make('created_at')
+                    ->form([
+                        Forms\Components\DatePicker::make('created_from')
+                            ->label('Created from')
+                            ->native(false),
+                        Forms\Components\DatePicker::make('created_until')
+                            ->label('Created until')
+                            ->native(false),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['created_from'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                            )
+                            ->when(
+                                $data['created_until'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                            );
+                    })
+                    ->columns(2),
+            ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make()
@@ -289,40 +468,18 @@ class PenawaranResource extends Resource
                             $newRecord->status = 'draft';
                             $newRecord->save();
 
+                            // Duplicate details
+                            foreach ($record->details as $detail) {
+                                $newDetail = $detail->replicate();
+                                $newDetail->penawaran_id = $newRecord->id;
+                                $newDetail->save();
+                            }
+
                             return redirect(static::getUrl('edit', ['record' => $newRecord]));
                         })
                         ->requiresConfirmation()
                         ->modalHeading('Duplicate Quotation')
                         ->modalDescription('Are you sure you want to duplicate this quotation?'),
-                    Tables\Actions\Action::make('send')
-                        ->label('Send to Customer')
-                        ->icon('heroicon-o-paper-airplane')
-                        ->color('warning')
-                        ->action(function ($record) {
-                            // Update status first
-                            $record->update(['status' => 'sent']);
-
-                            // Send email with PDF
-                            try {
-                                Mail::to($record->customer->email)->send(new \App\Mail\QuotationSent($record));
-
-                                \Filament\Notifications\Notification::make()
-                                    ->success()
-                                    ->title('Quotation sent successfully')
-                                    ->body("Quotation has been sent to {$record->customer->nama} ({$record->customer->email})")
-                                    ->send();
-                            } catch (\Exception $e) {
-                                \Filament\Notifications\Notification::make()
-                                    ->danger()
-                                    ->title('Failed to send email')
-                                    ->body('Quotation status updated but email failed to send: ' . $e->getMessage())
-                                    ->send();
-                            }
-                        })
-                        ->visible(fn ($record) => $record->status === 'draft')
-                        ->requiresConfirmation()
-                        ->modalHeading('Send Quotation')
-                        ->modalDescription('Are you sure you want to send this quotation to customer via email?'),
                     Tables\Actions\Action::make('download_pdf')
                         ->label('Download PDF')
                         ->icon('heroicon-o-arrow-down-tray')
@@ -331,57 +488,12 @@ class PenawaranResource extends Resource
                         ->openUrlInNewTab(),
                     Tables\Actions\DeleteAction::make()
                         ->visible(fn ($record) => $record->status === 'draft')
-                        ->requiresConfirmation()
-                        ->modalHeading('Delete Quotation')
-                        ->modalDescription('Are you sure you want to delete this quotation? This action cannot be undone.')
-                        ->modalSubmitActionLabel('Yes, Delete'),
+                        ->requiresConfirmation(),
                 ])
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->action(function ($records) {
-                            $records->each(function ($record) {
-                                if ($record->status === 'draft') {
-                                    $record->delete();
-                                }
-                            });
-                        })
-                        ->requiresConfirmation()
-                        ->modalHeading('Delete Selected Quotations')
-                        ->modalDescription('Are you sure you want to delete all selected quotations? Only draft quotations will be deleted.')
-                        ->modalSubmitActionLabel('Yes, Delete All'),
-                    Tables\Actions\BulkAction::make('mark_as_sent')
-                        ->label('Send to Customers')
-                        ->icon('heroicon-o-paper-airplane')
-                        ->color('warning')
-                        ->action(function ($records) {
-                            $sent = 0;
-                            $failed = 0;
-
-                            $records->each(function ($record) use (&$sent, &$failed) {
-                                if ($record->status === 'draft') {
-                                    try {
-                                        $record->update(['status' => 'sent']);
-                                        Mail::to($record->customer->email)->send(new \App\Mail\QuotationSent($record));
-                                        $sent++;
-                                    } catch (\Exception $e) {
-                                        $failed++;
-                                    }
-                                }
-                            });
-
-                            if ($sent > 0) {
-                                \Filament\Notifications\Notification::make()
-                                    ->success()
-                                    ->title("{$sent} quotations sent successfully")
-                                    ->body($failed > 0 ? "{$failed} quotations failed to send email" : '')
-                                    ->send();
-                            }
-                        })
-                        ->requiresConfirmation()
-                        ->modalHeading('Send Selected Quotations')
-                        ->modalDescription('Are you sure you want to send selected quotations to customers via email?'),
+                    Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('created_at', 'desc')
@@ -426,11 +538,10 @@ class PenawaranResource extends Resource
                                     ->label('Sales Person')
                                     ->icon('heroicon-m-user-circle'),
 
-                                Infolists\Components\TextEntry::make('harga')
-                                    ->label('Total Price')
-                                    ->money('IDR')
-                                    ->weight(FontWeight::SemiBold)
-                                    ->icon('heroicon-m-currency-dollar'),
+                                Infolists\Components\TextEntry::make('tax_rate')
+                                    ->label('Tax Rate')
+                                    ->suffix('%')
+                                    ->icon('heroicon-m-calculator'),
                             ]),
                     ]),
 
@@ -452,20 +563,108 @@ class PenawaranResource extends Resource
                                     ->label('Phone')
                                     ->copyable()
                                     ->icon('heroicon-m-phone'),
-                            ]),
 
-                        Infolists\Components\TextEntry::make('customer.alamat')
-                            ->label('Address')
-                            ->columnSpanFull()
-                            ->icon('heroicon-m-map-pin'),
+                                Infolists\Components\TextEntry::make('customer.alamat')
+                                    ->label('Address')
+                                    ->icon('heroicon-m-map-pin'),
+                            ]),
                     ]),
 
-                Infolists\Components\Section::make('Description')
+                Infolists\Components\Section::make('Product Details')
                     ->schema([
-                        Infolists\Components\TextEntry::make('deskripsi')
-                            ->label('Quotation Description')
+                        Infolists\Components\RepeatableEntry::make('details')
+                            ->label('')
+                            ->schema([
+                                Infolists\Components\Grid::make(6)
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('nama_produk')
+                                            ->label('Product Name')
+                                            ->weight(FontWeight::Medium)
+                                            ->columnSpan(2),
+
+                                        Infolists\Components\TextEntry::make('jumlah')
+                                            ->label('Qty')
+                                            ->numeric()
+                                            ->columnSpan(1),
+
+                                        Infolists\Components\TextEntry::make('satuan')
+                                            ->label('Unit')
+                                            ->columnSpan(1),
+
+                                        Infolists\Components\TextEntry::make('harga_satuan')
+                                            ->label('Unit Price')
+                                            ->money('IDR')
+                                            ->columnSpan(1),
+
+                                        Infolists\Components\TextEntry::make('total')
+                                            ->label('Total')
+                                            ->money('IDR')
+                                            ->weight(FontWeight::SemiBold)
+                                            ->color('success')
+                                            ->columnSpan(1),
+                                    ]),
+
+                                Infolists\Components\TextEntry::make('deskripsi')
+                                    ->label('Description')
+                                    ->prose()
+                                    ->columnSpanFull()
+                                    ->visible(fn ($state) => !empty($state)),
+
+                                Infolists\Components\TextEntry::make('keterangan')
+                                    ->label('Additional Notes')
+                                    ->prose()
+                                    ->columnSpanFull()
+                                    ->visible(fn ($state) => !empty($state)),
+                            ])
+                            ->contained(false)
+                            ->columns(1),
+                    ]),
+
+                Infolists\Components\Section::make('💰 Total Summary')
+                    ->schema([
+                        Infolists\Components\Grid::make(3)
+                            ->schema([
+                                Infolists\Components\TextEntry::make('total_sebelum_pajak')
+                                    ->label('Subtotal (Before Tax)')
+                                    ->money('IDR')
+                                    ->weight(FontWeight::Medium),
+
+                                Infolists\Components\TextEntry::make('total_pajak')
+                                    ->label('Tax Amount')
+                                    ->money('IDR')
+                                    ->weight(FontWeight::Medium),
+
+                                Infolists\Components\TextEntry::make('harga')
+                                    ->label('🏆 Grand Total')
+                                    ->money('IDR')
+                                    ->weight(FontWeight::Bold)
+                                    ->size('lg')
+                                    ->color('success'),
+                            ]),
+                    ])
+                    ->compact(),
+
+                Infolists\Components\Section::make('Terms & Conditions')
+                    ->schema([
+                        Infolists\Components\TextEntry::make('terms_conditions')
+                            ->label('')
                             ->prose()
-                            ->hiddenLabel(),
+                            ->hiddenLabel()
+                            ->columnSpanFull()
+                            ->formatStateUsing(function ($state) {
+                                if (empty($state)) return 'No terms and conditions specified.';
+
+                                // Convert line breaks to proper list format
+                                $lines = explode("\n", $state);
+                                $formatted = [];
+                                foreach ($lines as $line) {
+                                    $line = trim($line);
+                                    if (!empty($line)) {
+                                        $formatted[] = $line;
+                                    }
+                                }
+                                return implode("\n", $formatted);
+                            }),
                     ])
                     ->collapsible(),
 
@@ -484,7 +683,8 @@ class PenawaranResource extends Resource
                                     ->icon('heroicon-m-pencil-square'),
                             ]),
                     ])
-                    ->collapsible(),
+                    ->collapsible()
+                    ->collapsed(),
             ]);
     }
 
@@ -517,7 +717,7 @@ class PenawaranResource extends Resource
 
     public static function getGloballySearchableAttributes(): array
     {
-        return ['nomor_penawaran', 'customer.nama', 'deskripsi'];
+        return ['nomor_penawaran', 'customer.nama'];
     }
 
     public static function getGlobalSearchResultDetails($record): array

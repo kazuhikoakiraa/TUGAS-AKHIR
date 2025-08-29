@@ -131,7 +131,7 @@ class InvoiceResource extends Resource
                             }),
 
                         Forms\Components\TextInput::make('total_pajak')
-                            ->label('Tax Total (VAT 11%)')
+                            ->label('Tax Total')
                             ->numeric()
                             ->prefix('Rp')
                             ->required()

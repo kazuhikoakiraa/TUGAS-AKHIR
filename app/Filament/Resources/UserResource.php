@@ -108,15 +108,6 @@ class UserResource extends Resource
                     ->description(fn (User $record): string => $record->email)
                     ->wrap(),
 
-                Tables\Columns\TextColumn::make('email')
-                    ->label('Email')
-                    ->searchable()
-                    ->sortable()
-                    ->icon('heroicon-o-envelope')
-                    ->copyable()
-                    ->copyMessage('Email copied successfully')
-                    ->copyMessageDuration(1500),
-
                 Tables\Columns\TextColumn::make('roles.name')
                     ->label('Role')
                     ->searchable(),
@@ -244,12 +235,6 @@ class UserResource extends Resource
                                     ->size('lg')
                                     ->weight('bold')
                                     ->icon('heroicon-o-user'),
-
-                                Infolists\Components\TextEntry::make('email')
-                                    ->label('Email')
-                                    ->icon('heroicon-o-envelope')
-                                    ->copyable()
-                                    ->copyMessage('Email copied successfully'),
 
                                 Infolists\Components\TextEntry::make('roles.name')
                                     ->label('Roles')

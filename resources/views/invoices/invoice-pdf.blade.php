@@ -89,8 +89,6 @@
         .logo-container {
             width: 70px;
             height: 70px;
-            border: 2px solid #000;
-            border-radius: 50%;
             background: #f9f9f9;
             display: flex;
             align-items: center;
@@ -429,10 +427,10 @@
                 <table class="items-table">
                     <thead>
                         <tr>
-                            <th class="desc-col">Product Name ▼</th>
-                            <th class="qty-col">Qty ▼</th>
-                            <th class="price-col">Unit Price ▼</th>
-                            <th class="total-col">Total ▼</th>
+                            <th class="desc-col">Product Name</th>
+                            <th class="qty-col">Qty</th>
+                            <th class="price-col">Unit Price</th>
+                            <th class="total-col">Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -471,7 +469,7 @@
                             <td class="amount-col">IDR {{ number_format($invoice->total_sebelum_pajak, 0, ',', '.') }}</td>
                         </tr>
                         <tr>
-                            <td class="label-col">TAX RATE 11%</td>
+                            <td class="label-col">TAX RATE {{ $invoice->poCustomer->tax_rate }}%</td>
                             <td class="amount-col">IDR {{ number_format($invoice->total_pajak, 0, ',', '.') }}</td>
                         </tr>
                         <tr>

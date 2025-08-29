@@ -79,8 +79,8 @@ class PoCustomerResource extends Resource
                         Forms\Components\Select::make('jenis_po')
                             ->label('PO Type')
                             ->options([
-                                'Product' => '📦 Product PO',
-                                'Service' => '🛠️ Service PO',
+                                'Product' => 'Product PO',
+                                'Service' => 'Service PO',
                             ])
                             ->required()
                             ->native(false)
@@ -458,8 +458,8 @@ class PoCustomerResource extends Resource
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'Product' => '📦 Product',
-                        'Service' => '🛠️ Service',
+                        'Product' => 'Product',
+                        'Service' => 'Service',
                         default => $state,
                     }),
 
@@ -480,7 +480,7 @@ class PoCustomerResource extends Resource
                     }),
 
                 Tables\Columns\IconColumn::make('attachment_path')
-                    ->label('📎')
+                    ->label('Attachment')
                     ->boolean()
                     ->trueIcon('heroicon-o-paper-clip')
                     ->falseIcon('')

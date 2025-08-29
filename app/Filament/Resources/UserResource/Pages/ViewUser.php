@@ -17,149 +17,128 @@ class ViewUser extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            // Primary action - Edit
             Actions\EditAction::make()
                 ->label('Edit User')
                 ->icon('heroicon-o-pencil-square')
-                ->modalWidth('2xl'),
+                ->color('warning'),  // Edit menggunakan warning/amber
 
+            // Grouped secondary actions
+            Actions\ActionGroup::make([
+                // Email-related actions
+                Actions\Action::make('sendPasswordResetEmail')
+                    ->label('Send Password Reset')
+                    ->icon('heroicon-o-key')
+                    ->color('info')  // Info actions menggunakan blue
+                    ->requiresConfirmation()
+                    ->modalHeading('Send Password Reset Email')
+                    ->modalDescription('A password reset email will be sent to the user\'s email address.')
+                    ->modalSubmitActionLabel('Send Email')
+                    ->action(function ($record) {
+                        $status = Password::sendResetLink(['email' => $record->email]);
+
+                        if ($status === Password::RESET_LINK_SENT) {
+                            $this->logActivity($record, 'password_reset_sent', 'Password reset email has been sent to user');
+
+                            Notification::make()
+                                ->success()
+                                ->title('Password reset email sent')
+                                ->body('The user will receive an email with a link to reset their password.')
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->danger()
+                                ->title('Failed to send email')
+                                ->body('An error occurred while sending the password reset email.')
+                                ->send();
+                        }
+                    }),
+
+                Actions\Action::make('sendVerificationEmail')
+                    ->label('Send Email Verification')
+                    ->icon('heroicon-o-paper-airplane')
+                    ->color('info')  // Info actions menggunakan blue
+                    ->requiresConfirmation()
+                    ->modalHeading('Send Email Verification')
+                    ->modalDescription('A verification email will be sent to the user\'s email address.')
+                    ->modalSubmitActionLabel('Send Email')
+                    ->visible(fn ($record) => !$record->email_verified_at)
+                    ->action(function ($record) {
+                        try {
+                            $record->sendEmailVerificationNotification();
+                            $this->logActivity($record, 'verification_email_sent', 'Email verification has been sent to user');
+
+                            Notification::make()
+                                ->success()
+                                ->title('Verification email sent')
+                                ->body('The user will receive an email to verify their email address.')
+                                ->send();
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Failed to send email')
+                                ->body('An error occurred while sending the verification email.')
+                                ->send();
+                        }
+                    }),
+
+                Actions\Action::make('verifyEmailManually')
+                    ->label('Verify Email Manually')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')  // Success actions menggunakan green
+                    ->requiresConfirmation()
+                    ->modalHeading('Manual Email Verification')
+                    ->modalDescription('The user\'s email will be marked as verified manually.')
+                    ->modalSubmitActionLabel('Verify Now')
+                    ->visible(fn ($record) => !$record->email_verified_at)
+                    ->action(function ($record) {
+                        $record->update(['email_verified_at' => now()]);
+                        $this->logActivity($record, 'email_verified_manually', 'Email verified manually by admin');
+
+                        Notification::make()
+                            ->success()
+                            ->title('Email verified')
+                            ->body('The user\'s email has been successfully verified manually.')
+                            ->send();
+                    }),
+            ])
+            ->label('Email Actions')
+            ->icon('heroicon-o-envelope')
+            ->color('gray')  // Group button menggunakan gray
+            ->button()
+            ->outlined(),
+
+            // Destructive action - Delete
             Actions\DeleteAction::make()
-                ->label('Delete User')
+                ->label('Delete')
                 ->icon('heroicon-o-trash')
+                ->color('danger')  // Destructive menggunakan red
                 ->requiresConfirmation()
                 ->modalHeading('Delete User')
-                ->modalDescription('Are you sure you want to delete this user? This action cannot be undone.')
-                ->modalSubmitActionLabel('Yes, Delete')
-                ->successRedirectUrl(fn () => static::getResource()::getUrl('index')),
-
-            Actions\Action::make('sendPasswordResetEmail')
-                ->label('Send Password Reset')
-                ->icon('heroicon-o-envelope')
-                ->color('warning')
-                ->requiresConfirmation()
-                ->modalHeading('Send Password Reset Email')
-                ->modalDescription('A password reset email will be sent to the user\'s email address. The user will receive a link to change their password themselves.')
-                ->modalSubmitActionLabel('Yes, Send Email')
-                ->action(function ($record) {
-                    // Send password reset notification
-                    $status = Password::sendResetLink(
-                        ['email' => $record->email]
-                    );
-
-                    if ($status === Password::RESET_LINK_SENT) {
-                        // Log activity
-                        ActivityLog::create([
-                            'subject_type' => get_class($record),
-                            'subject_id' => $record->id,
-                            'causer_type' => Auth::check() ? get_class(Auth::user()) : null,
-                            'causer_id' => Auth::id(),
-                            'event' => 'password_reset_sent',
-                            'description' => 'Password reset email has been sent to user',
-                            'properties' => json_encode([
-                                'email' => $record->email,
-                                'sent_by' => Auth::user()?->name ?? 'System',
-                                'sent_at' => now(),
-                            ]),
-                        ]);
-
-                        Notification::make()
-                            ->success()
-                            ->title('Password reset email sent successfully')
-                            ->body('The user will receive an email with a link to reset their password.')
-                            ->duration(5000)
-                            ->send();
-                    } else {
-                        Notification::make()
-                            ->danger()
-                            ->title('Failed to send email')
-                            ->body('An error occurred while sending the password reset email.')
-                            ->duration(5000)
-                            ->send();
-                    }
-                }),
-
-            Actions\Action::make('sendVerificationEmail')
-                ->label('Send Email Verification')
-                ->icon('heroicon-o-paper-airplane')
-                ->color('info')
-                ->requiresConfirmation()
-                ->modalHeading('Send Email Verification')
-                ->modalDescription('A verification email will be sent to the user\'s email address.')
-                ->modalSubmitActionLabel('Yes, Send Email')
-                ->visible(fn ($record) => !$record->email_verified_at)
-                ->action(function ($record) {
-                    try {
-                        // Send email verification notification
-                        $record->sendEmailVerificationNotification();
-
-                        // Log activity
-                        ActivityLog::create([
-                            'subject_type' => get_class($record),
-                            'subject_id' => $record->id,
-                            'causer_type' => Auth::check() ? get_class(Auth::user()) : null,
-                            'causer_id' => Auth::id(),
-                            'event' => 'verification_email_sent',
-                            'description' => 'Email verification has been sent to user',
-                            'properties' => json_encode([
-                                'email' => $record->email,
-                                'sent_by' => Auth::user()?->name ?? 'System',
-                                'sent_at' => now(),
-                            ]),
-                        ]);
-
-                        Notification::make()
-                            ->success()
-                            ->title('Verification email sent successfully')
-                            ->body('The user will receive an email to verify their email address.')
-                            ->duration(5000)
-                            ->send();
-                    } catch (\Exception $e) {
-                        Notification::make()
-                            ->danger()
-                            ->title('Failed to send email')
-                            ->body('An error occurred while sending the verification email.')
-                            ->duration(5000)
-                            ->send();
-                    }
-                }),
-
-            Actions\Action::make('verifyEmailManually')
-                ->label('Manual Verification')
-                ->icon('heroicon-o-check-circle')
-                ->color('success')
-                ->requiresConfirmation()
-                ->modalHeading('Manual Email Verification')
-                ->modalDescription('The user\'s email will be marked as verified manually.')
-                ->modalSubmitActionLabel('Yes, Verify')
-                ->visible(fn ($record) => !$record->email_verified_at)
-                ->action(function ($record) {
-                    $record->update([
-                        'email_verified_at' => now()
-                    ]);
-
-                    // Log activity
-                    ActivityLog::create([
-                        'subject_type' => get_class($record),
-                        'subject_id' => $record->id,
-                        'causer_type' => Auth::check() ? get_class(Auth::user()) : null,
-                        'causer_id' => Auth::id(),
-                        'event' => 'email_verified_manually',
-                        'description' => 'Email verified manually by admin',
-                        'properties' => json_encode([
-                            'email' => $record->email,
-                            'verified_by' => Auth::user()?->name ?? 'System',
-                            'verified_at' => now(),
-                        ]),
-                    ]);
-
-                    Notification::make()
-                        ->success()
-                        ->title('Email verified successfully')
-                        ->body('The user\'s email has been successfully verified manually.')
-                        ->duration(5000)
-                        ->send();
-                }),
+                ->modalDescription('Are you sure you want to delete this user? This action cannot be undone and will remove all associated data.')
+                ->modalSubmitActionLabel('Yes, Delete User')
+                ->successRedirectUrl(fn () => static::getResource()::getUrl('index'))
+                ->outlined(),
         ];
     }
 
-
+    /**
+     * Helper method untuk logging activity
+     */
+    private function logActivity($record, string $event, string $description): void
+    {
+        ActivityLog::create([
+            'subject_type' => get_class($record),
+            'subject_id' => $record->id,
+            'causer_type' => Auth::check() ? get_class(Auth::user()) : null,
+            'causer_id' => Auth::id(),
+            'event' => $event,
+            'description' => $description,
+            'properties' => json_encode([
+                'email' => $record->email,
+                'performed_by' => Auth::user()?->name ?? 'System',
+                'performed_at' => now(),
+            ]),
+        ]);
+    }
 }

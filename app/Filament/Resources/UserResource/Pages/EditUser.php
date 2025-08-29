@@ -17,64 +17,60 @@ class EditUser extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            // Quick view action
             Actions\ViewAction::make()
                 ->label('View Details')
-                ->icon('heroicon-o-eye'),
+                ->icon('heroicon-o-eye')
+                ->color('gray')
+                ->outlined(),
 
+            // Quick actions group untuk mengurangi clutter
+            Actions\ActionGroup::make([
+                Actions\Action::make('sendPasswordResetEmail')
+                    ->label('Send Password Reset')
+                    ->icon('heroicon-o-key')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Send Password Reset Email')
+                    ->modalDescription('A password reset email will be sent to the user\'s email address.')
+                    ->modalSubmitActionLabel('Send Email')
+                    ->action(function ($record) {
+                        $status = Password::sendResetLink(['email' => $record->email]);
+
+                        if ($status === Password::RESET_LINK_SENT) {
+                            $this->logActivity($record, 'password_reset_sent', 'Password reset email has been sent to user');
+
+                            Notification::make()
+                                ->success()
+                                ->title('Password reset email sent')
+                                ->body('The user will receive an email with a link to reset their password.')
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->danger()
+                                ->title('Failed to send email')
+                                ->body('An error occurred while sending the password reset email.')
+                                ->send();
+                        }
+                    }),
+            ])
+            ->label('Quick Actions')
+            ->icon('heroicon-o-bolt')
+            ->color('gray')
+            ->button()
+            ->outlined(),
+
+            // Delete action terpisah
             Actions\DeleteAction::make()
-                ->label('Delete User')
+                ->label('Delete')
                 ->icon('heroicon-o-trash')
+                ->color('danger')
                 ->requiresConfirmation()
                 ->modalHeading('Delete User')
                 ->modalDescription('Are you sure you want to delete this user? This action cannot be undone.')
-                ->modalSubmitActionLabel('Yes, Delete')
-                ->successRedirectUrl(fn () => static::getResource()::getUrl('index')),
-
-            Actions\Action::make('sendPasswordResetEmail')
-                ->label('Send Password Reset')
-                ->icon('heroicon-o-envelope')
-                ->color('warning')
-                ->requiresConfirmation()
-                ->modalHeading('Send Password Reset Email')
-                ->modalDescription('A password reset email will be sent to the user\'s email address. The user will receive a link to change their password themselves.')
-                ->modalSubmitActionLabel('Yes, Send Email')
-                ->action(function ($record) {
-                    // Send password reset notification
-                    $status = Password::sendResetLink(
-                        ['email' => $record->email]
-                    );
-
-                    if ($status === Password::RESET_LINK_SENT) {
-                        // Log activity
-                        ActivityLog::create([
-                            'subject_type' => get_class($record),
-                            'subject_id' => $record->id,
-                            'causer_type' => Auth::check() ? get_class(Auth::user()) : null,
-                            'causer_id' => Auth::id(),
-                            'event' => 'password_reset_sent',
-                            'description' => 'Password reset email has been sent to user',
-                            'properties' => json_encode([
-                                'email' => $record->email,
-                                'sent_by' => Auth::user()?->name ?? 'System',
-                                'sent_at' => now(),
-                            ]),
-                        ]);
-
-                        Notification::make()
-                            ->success()
-                            ->title('Password reset email sent successfully')
-                            ->body('The user will receive an email with a link to reset their password.')
-                            ->duration(5000)
-                            ->send();
-                    } else {
-                        Notification::make()
-                            ->danger()
-                            ->title('Failed to send email')
-                            ->body('An error occurred while sending the password reset email.')
-                            ->duration(5000)
-                            ->send();
-                    }
-                }),
+                ->modalSubmitActionLabel('Yes, Delete User')
+                ->successRedirectUrl(fn () => static::getResource()::getUrl('index'))
+                ->outlined(),
         ];
     }
 
@@ -109,5 +105,25 @@ class EditUser extends EditRecord
             $this->getCancelFormAction()
                 ->label('Cancel'),
         ];
+    }
+
+    /**
+     * Helper method untuk logging activity
+     */
+    private function logActivity($record, string $event, string $description): void
+    {
+        ActivityLog::create([
+            'subject_type' => get_class($record),
+            'subject_id' => $record->id,
+            'causer_type' => Auth::check() ? get_class(Auth::user()) : null,
+            'causer_id' => Auth::id(),
+            'event' => $event,
+            'description' => $description,
+            'properties' => json_encode([
+                'email' => $record->email,
+                'performed_by' => Auth::user()?->name ?? 'System',
+                'performed_at' => now(),
+            ]),
+        ]);
     }
 }

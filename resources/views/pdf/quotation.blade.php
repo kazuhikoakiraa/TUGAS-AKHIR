@@ -5,7 +5,7 @@
     <title>Quotation {{ $quotation->nomor_penawaran }}</title>
     <style>
         @page {
-            margin: 20mm;
+            margin: 15mm;
             size: A4;
         }
 
@@ -14,7 +14,7 @@
         }
 
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'DejaVu Sans', Arial, sans-serif;
             font-size: 12px;
             line-height: 1.4;
             color: #000;
@@ -23,104 +23,112 @@
             background-color: #fff;
         }
 
-        /* Company Header/Kop */
+        /* Company Header */
         .company-header {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 15px;
+            width: 100%;
+            margin-bottom: 20px;
+            overflow: hidden;
         }
 
-        .company-left {
-            display: flex;
-            align-items: flex-start;
+        .header-content {
+            width: 100%;
+            display: table;
         }
 
-        .company-logo {
-            margin-right: 15px;
+        .logo-section {
+            display: table-cell;
+            width: 100px;
+            vertical-align: top;
+            padding-right: 15px;
         }
 
-        .company-logo img {
-            max-width: 80px;
-            max-height: 80px;
+        .logo-section img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
         }
 
         .company-info {
-            flex: 1;
+            display: table-cell;
+            vertical-align: top;
         }
 
         .company-name {
             font-size: 18px;
             font-weight: bold;
-            color: #4a90e2;
-            margin: 0 0 5px 0;
-            letter-spacing: 1px;
+            color: #2c5aa0;
+            margin: 0 0 8px 0;
+            letter-spacing: 0.5px;
         }
 
         .company-address {
-            font-size: 10px;
-            color: #000;
+            font-size: 11px;
+            color: #333;
             line-height: 1.4;
-            margin-bottom: 3px;
+            margin-bottom: 5px;
         }
 
         .company-contact {
-            font-size: 10px;
-            color: #000;
+            font-size: 11px;
+            color: #333;
         }
 
         .company-contact a {
-            color: #4a90e2;
+            color: #2c5aa0;
             text-decoration: none;
         }
 
         /* Separator Line */
         .separator-line {
-            border-bottom: 3px solid #4a90e2;
-            margin-bottom: 20px;
+            border-bottom: 2px solid #2c5aa0;
+            margin-bottom: 25px;
         }
 
-        /* Header Section */
-        .header {
-            margin-bottom: 20px;
+        /* Document Info */
+        .document-info {
+            width: 100%;
+            margin-bottom: 25px;
         }
 
-        .header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 10px;
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
         }
 
-        .to-section {
-            flex: 1;
+        .info-table td {
+            padding: 4px 0;
+            vertical-align: top;
         }
 
-        .date-section {
+        .info-left {
+            width: 60%;
+            padding-right: 30px;
+        }
+
+        .info-right {
+            width: 40%;
             text-align: right;
-            min-width: 200px;
         }
 
-        .company-info-customer {
-            margin-bottom: 15px;
-        }
-
-        .company-name-customer {
+        .customer-name {
             font-weight: bold;
-            margin-bottom: 2px;
+            margin-bottom: 8px;
+            font-size: 13px;
         }
 
-        .company-address-customer {
+        .customer-address {
             font-size: 11px;
-            line-height: 1.3;
-            margin-bottom: 10px;
+            line-height: 1.4;
+            margin-bottom: 12px;
+            color: #444;
         }
 
-        .attn {
-            margin-bottom: 15px;
+        .label-bold {
+            font-weight: bold;
         }
 
-        /* Subject Section */
-        .subject {
+        /* Subject */
+        .subject-section {
             margin-bottom: 20px;
             font-weight: bold;
         }
@@ -129,53 +137,98 @@
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
-            border: 1px solid #000;
+            margin-bottom: 25px;
+            border: 1px solid #333;
         }
 
         .items-table th,
         .items-table td {
-            border: 1px solid #000;
-            padding: 8px 6px;
-            text-align: left;
+            border: 1px solid #333;
+            padding: 10px 8px;
             font-size: 11px;
         }
 
         .items-table th {
-            background-color: #f0f0f0;
+            background-color: #f5f5f5;
             font-weight: bold;
             text-align: center;
+            color: #333;
         }
 
-        .items-table .col-no {
-            width: 5%;
+        .col-no {
+            width: 6%;
             text-align: center;
         }
 
-        .items-table .col-item {
-            width: 35%;
+        .col-item {
+            width: 38%;
+            text-align: left;
         }
 
-        .items-table .col-qty {
-            width: 8%;
+        .col-qty {
+            width: 10%;
             text-align: center;
         }
 
-        .items-table .col-unit {
-            width: 8%;
+        .col-unit {
+            width: 10%;
             text-align: center;
         }
 
-        .items-table .col-price {
-            width: 22%;
+        .col-price {
+            width: 18%;
             text-align: right;
         }
 
-        .items-table .col-total {
-            width: 22%;
+        .col-total {
+            width: 18%;
             text-align: right;
         }
 
+        .item-description {
+            font-size: 10px;
+            color: #666;
+            margin-top: 3px;
+            font-style: italic;
+        }
+
+        /* Terms Section */
+        .terms-section {
+            margin-bottom: 35px;
+        }
+
+        .terms-title {
+            font-weight: bold;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .terms-content {
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .terms-item {
+            margin: 5px 0;
+            padding-left: 0;
+        }
+
+        /* Signature Section */
+        .signature-section {
+            margin-top: 40px;
+        }
+
+        .signature-text {
+            margin-bottom: 60px;
+            font-size: 12px;
+        }
+
+        .company-signature {
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        /* Utilities */
         .text-center {
             text-align: center;
         }
@@ -184,58 +237,33 @@
             text-align: right;
         }
 
-        /* Terms Section */
-        .terms-section {
-            margin-bottom: 30px;
-        }
-
-        .terms-title {
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .terms-content {
-            font-size: 11px;
-            line-height: 1.5;
-        }
-
-        .terms-content p {
-            margin: 3px 0;
-        }
-
-        /* Signature Section */
-        .signature-section {
-            margin-top: 30px;
-            text-align: left;
-        }
-
-        .signature-text {
-            margin-bottom: 50px;
-        }
-
-        .company-signature {
-            font-weight: bold;
-        }
-
-        /* Utilities */
         .money {
-            font-family: Arial, sans-serif;
+            font-family: 'DejaVu Sans', Arial, sans-serif;
         }
 
-        /* Print Styles */
+        /* Print Adjustments */
         @media print {
             body {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
+
+            .company-header,
+            .separator-line,
+            .document-info,
+            .items-table,
+            .terms-section,
+            .signature-section {
+                page-break-inside: avoid;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Company Header/Kop - Baris 1 -->
+    <!-- Company Header -->
     <div class="company-header">
-        <div class="company-left">
-            <div class="company-logo">
+        <div class="header-content">
+            <div class="logo-section">
                 <img src="{{ public_path('images/logo.png') }}" alt="Company Logo" />
             </div>
             <div class="company-info">
@@ -244,38 +272,36 @@
                     Jl. Pelita 1 Ujung No. 36 Labuhan Ratu, Kedaton, Bandar Lampung
                 </div>
                 <div class="company-contact">
-                    0822 8258 4263, email : <a href="mailto:sales.sentra@sentra-alam.com">sales.sentra@sentra-alam.com</a>
+                    Telp: 0822 8258 4263 | Email: <a href="mailto:sales.sentra@sentra-alam.com">sales.sentra@sentra-alam.com</a>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Separator Line - Baris 2 -->
+    <!-- Separator Line -->
     <div class="separator-line"></div>
 
-    <!-- Header - Baris 3 -->
-    <div class="header">
-        <div class="header-row">
-            <div class="to-section">
-                <strong>To :</strong><br>
-                <div class="company-info-customer">
-                    <div class="company-name-customer">{{ $quotation->customer->nama }}</div>
-                    <div class="company-address-customer">{{ $quotation->customer->alamat }}</div>
-                </div>
-                <div class="attn">
-                    <strong>Attn :</strong> {{ $quotation->customer->nama }}
-                </div>
-            </div>
-            <div class="date-section">
-                <strong>Quo date :</strong> {{ $quotation->tanggal->format('d F Y') }}<br>
-                <strong>Qtn No :</strong> {{ $quotation->nomor_penawaran }}
-            </div>
-        </div>
+    <!-- Document Information -->
+    <div class="document-info">
+        <table class="info-table">
+            <tr>
+                <td class="info-left">
+                    <div class="label-bold">Kepada:</div>
+                    <div class="customer-name">{{ $quotation->customer->nama }}</div>
+                    <div class="customer-address">{{ $quotation->customer->alamat }}</div>
+                    <div><span class="label-bold">Attention:</span> {{ $quotation->customer->nama }}</div>
+                </td>
+                <td class="info-right">
+                    <div><span class="label-bold">Tanggal:</span> {{ $quotation->tanggal->format('d F Y') }}</div>
+                    <div style="margin-top: 8px;"><span class="label-bold">No. Penawaran:</span> {{ $quotation->nomor_penawaran }}</div>
+                </td>
+            </tr>
+        </table>
     </div>
 
     <!-- Subject -->
-    <div class="subject">
-        <strong>Subject :</strong> {{ $quotation->subject ?? 'Quotation for Products/Services' }}
+    <div class="subject-section">
+        <span class="label-bold">Hal:</span> {{ $quotation->subject ?? 'Penawaran Harga Produk/Jasa' }}
     </div>
 
     <!-- Items Table -->
@@ -283,21 +309,21 @@
         <thead>
             <tr>
                 <th class="col-no">No</th>
-                <th class="col-item">ITEM<br>Pesanan</th>
+                <th class="col-item">Nama Item</th>
                 <th class="col-qty">Qty</th>
-                <th class="col-unit">Unit</th>
-                <th class="col-price">Unit Price<br>Rp.</th>
-                <th class="col-total">Total<br>Rp.</th>
+                <th class="col-unit">Satuan</th>
+                <th class="col-price">Harga Satuan<br>(Rp)</th>
+                <th class="col-total">Jumlah<br>(Rp)</th>
             </tr>
         </thead>
         <tbody>
             @foreach($quotation->details as $index => $detail)
             <tr>
-                <td class="col-no text-center">{{ $index + 1 }}.</td>
+                <td class="col-no text-center">{{ $index + 1 }}</td>
                 <td class="col-item">
-                    {{ $detail->nama_produk ?: ($detail->product->name ?? 'Product Name') }}
+                    {{ $detail->nama_produk ?: ($detail->product->name ?? 'Nama Produk') }}
                     @if($detail->deskripsi)
-                        <br><span style="font-size: 10px; color: #666;">{{ $detail->deskripsi }}</span>
+                        <div class="item-description">{{ $detail->deskripsi }}</div>
                     @endif
                 </td>
                 <td class="col-qty text-center">{{ number_format($detail->jumlah, 0) }}</td>
@@ -311,28 +337,26 @@
 
     <!-- Terms & Conditions -->
     <div class="terms-section">
-        <div class="terms-title">Terms & Conditions :</div>
+        <div class="terms-title">Syarat & Ketentuan:</div>
         <div class="terms-content">
             @if($quotation->terms_conditions)
                 @foreach(explode("\n", $quotation->terms_conditions) as $index => $line)
                     @if(trim($line))
-                        <p>{{ ($index + 1) }}. {{ trim($line) }}</p>
+                        <div class="terms-item">{{ ($index + 1) }}. {{ trim($line) }}</div>
                     @endif
                 @endforeach
             @else
-                <p>1. Harga belum termasuk PPN {{ $quotation->tax_rate ?? 11 }}%</p>
-                <p>2. Tempat Pengiriman : {{ $quotation->customer->nama }}</p>
-                <p>3. Metode Pembayaran : Cash / Tunai,<br>
-                   &nbsp;&nbsp;&nbsp;&nbsp;Acc No : 0098 0100 2824 560 (BRI)<br>
-                   &nbsp;&nbsp;&nbsp;&nbsp;Sentra Alam Anandana</p>
-                <p>4. Delivery Time : 4 – 7 hari setelah pembayaran</p>
+                <div class="terms-item">1. Harga belum termasuk PPN {{ $quotation->tax_rate ?? 11 }}%</div>
+                <div class="terms-item">2. Tempat pengiriman: {{ $quotation->customer->nama }}</div>
+                <div class="terms-item">3. Pembayaran: Transfer Bank BRI No. Rek: 0098 0100 2824 560 a.n PT. Sentra Alam Anandana</div>
+                <div class="terms-item">4. Waktu pengiriman: 4-7 hari kerja setelah pembayaran diterima</div>
             @endif
         </div>
     </div>
 
     <!-- Signature -->
     <div class="signature-section">
-        <div class="signature-text">Salam Hormat,</div>
+        <div class="signature-text">Hormat kami,</div>
         <div class="company-signature">PT. SENTRA ALAM ANANDANA</div>
     </div>
 </body>

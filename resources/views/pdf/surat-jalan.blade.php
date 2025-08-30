@@ -5,69 +5,139 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Surat Jalan - {{ $suratJalan->nomor_surat_jalan }}</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            line-height: 1.4;
-            color: #333;
-            margin: 0;
-            padding: 15px;
+        @page {
+            margin: 15mm;
+            size: A4;
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 15px;
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #000;
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+        }
+
+        /* Company Header */
+        .company-header {
+            width: 100%;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .header-content {
+            width: 100%;
+            display: table;
+        }
+
+        .logo-section {
+            display: table-cell;
+            width: 100px;
+            vertical-align: top;
+            padding-right: 15px;
+        }
+
+        .logo-section img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .company-info {
+            display: table-cell;
+            vertical-align: top;
         }
 
         .company-name {
             font-size: 18px;
             font-weight: bold;
+            color: #2c5aa0;
+            margin: 0 0 8px 0;
+            letter-spacing: 0.5px;
+        }
+
+        .company-address {
+            font-size: 11px;
+            color: #333;
+            line-height: 1.4;
             margin-bottom: 5px;
         }
 
-        .company-info {
+        .company-contact {
             font-size: 11px;
-            color: #666;
+            color: #333;
         }
 
-        .title {
+        .company-contact a {
+            color: #2c5aa0;
+            text-decoration: none;
+        }
+
+        /* Separator Line */
+        .separator-line {
+            border-bottom: 2px solid #2c5aa0;
+            margin-bottom: 25px;
+        }
+
+        /* Document Title */
+        .document-title {
             font-size: 18px;
             font-weight: bold;
             text-align: center;
-            margin: 20px 0;
+            margin-bottom: 25px;
             text-transform: uppercase;
-            text-decoration: underline;
         }
 
-        .info-section {
+        /* Document Info */
+        .document-info {
+            width: 100%;
             margin-bottom: 20px;
         }
 
         .info-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
         }
 
         .info-table td {
-            padding: 5px;
+            padding: 5px 0;
             vertical-align: top;
         }
 
-        .label {
+        .info-left {
+            width: 25%;
             font-weight: bold;
-            width: 150px;
         }
 
-        .separator {
-            width: 10px;
-            text-align: center;
+        .info-colon {
+            width: 5%;
         }
 
+        .info-value {
+            width: 35%;
+        }
+
+        .info-right-label {
+            width: 15%;
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .info-right-value {
+            width: 20%;
+            text-align: right;
+        }
+
+        /* Customer Section */
         .customer-section {
-            margin: 20px 0;
+            margin: 25px 0;
             border: 1px solid #333;
             padding: 15px;
             background-color: #f9f9f9;
@@ -75,10 +145,30 @@
 
         .customer-title {
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             font-size: 14px;
         }
 
+        .customer-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .customer-table td {
+            vertical-align: top;
+            padding: 2px 0;
+        }
+
+        .customer-left {
+            width: 50%;
+            padding-right: 20px;
+        }
+
+        .customer-right {
+            width: 50%;
+        }
+
+        /* Items Table */
         .items-table {
             width: 100%;
             border-collapse: collapse;
@@ -89,49 +179,54 @@
         .items-table th,
         .items-table td {
             border: 1px solid #333;
-            padding: 8px;
+            padding: 10px 8px;
             text-align: left;
         }
 
         .items-table th {
-            background-color: #f0f0f0;
+            background-color: #f5f5f5;
             font-weight: bold;
             text-align: center;
+            font-size: 11px;
         }
 
-        .item-no {
-            width: 40px;
+        .items-table td {
+            font-size: 11px;
+        }
+
+        .col-no {
+            width: 6%;
             text-align: center;
         }
 
-        .item-desc {
-            width: 35%;
+        .col-desc {
+            width: 38%;
         }
 
-        .item-qty {
-            width: 80px;
+        .col-qty {
+            width: 12%;
             text-align: center;
         }
 
-        .item-unit {
-            width: 60px;
+        .col-unit {
+            width: 10%;
             text-align: center;
         }
 
-        .item-price {
-            width: 100px;
+        .col-price {
+            width: 17%;
             text-align: right;
         }
 
-        .item-total {
-            width: 100px;
+        .col-total {
+            width: 17%;
             text-align: right;
         }
 
+        /* Summary Section */
         .summary-section {
-            float: right;
-            width: 300px;
-            margin: 20px 0;
+            width: 350px;
+            margin: 20px 0 20px auto;
         }
 
         .summary-table {
@@ -146,9 +241,9 @@
         }
 
         .summary-label {
-            background-color: #f0f0f0;
+            background-color: #f5f5f5;
             font-weight: bold;
-            text-align: right;
+            text-align: left;
             width: 60%;
         }
 
@@ -158,9 +253,13 @@
             width: 40%;
         }
 
+        .total-row {
+            background-color: #e0e0e0;
+        }
+
+        /* Notes Section */
         .notes-section {
-            clear: both;
-            margin: 30px 0;
+            margin: 25px 0;
             border: 1px solid #333;
             padding: 15px;
             min-height: 80px;
@@ -171,8 +270,14 @@
             margin-bottom: 10px;
         }
 
+        .notes-content {
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        /* Signature Section */
         .signature-section {
-            margin-top: 50px;
+            margin-top: 40px;
             width: 100%;
         }
 
@@ -185,7 +290,7 @@
             width: 33.33%;
             text-align: center;
             vertical-align: top;
-            padding: 20px 10px;
+            padding: 15px;
             border: 1px solid #333;
         }
 
@@ -200,6 +305,7 @@
             font-size: 11px;
         }
 
+        /* Footer */
         .footer {
             margin-top: 30px;
             text-align: center;
@@ -209,51 +315,70 @@
             padding-top: 15px;
         }
 
+        /* Print Adjustments */
         @media print {
-            body { margin: 0; }
-            .page-break { page-break-before: always; }
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <div class="company-name">{{ $company['name'] }}</div>
-        <div class="company-info">
-            {{ $company['address'] }}<br>
-            Telp: {{ $company['phone'] }} | Email: {{ $company['email'] }}
+   <!-- Company Header -->
+    <div class="company-header">
+        <div class="header-content">
+            <div class="logo-section">
+                @if(file_exists(public_path('images/logo.png')))
+                    <img src="data:image/png;base64,{{ base64_encode(file_get_contents(public_path('images/logo.png'))) }}" alt="Company Logo" />
+                @else
+                    <img src="{{ public_path('images/logo.png') }}" alt="Company Logo" />
+                @endif
+            </div>
+            <div class="company-info">
+                <h1 class="company-name">PT. SENTRA ALAM ANANDANA</h1>
+                <div class="company-address">
+                    Jl. Pelita 1 Ujung No. 36 Labuhan Ratu, Kedaton, Bandar Lampung
+                </div>
+                <div class="company-contact">
+                    Telp: 0822 8258 4263 | Email: <a href="mailto:sales.sentra@sentra-alam.com">sales.sentra@sentra-alam.com</a>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Title -->
-    <div class="title">Surat Jalan</div>
+    <!-- Separator Line -->
+    <div class="separator-line"></div>
+
+    <!-- Document Title -->
+    <div class="document-title">Surat Jalan</div>
 
     <!-- Document Info -->
-    <div class="info-section">
+    <div class="document-info">
         <table class="info-table">
             <tr>
-                <td class="label">Nomor Surat Jalan</td>
-                <td class="separator">:</td>
-                <td><strong>{{ $suratJalan->nomor_surat_jalan }}</strong></td>
-                <td class="label" style="text-align: right;">Tanggal</td>
-                <td class="separator">:</td>
-                <td><strong>{{ $suratJalan->tanggal->format('d F Y') }}</strong></td>
+                <td class="info-left">Nomor Surat Jalan</td>
+                <td class="info-colon">:</td>
+                <td class="info-value"><strong>{{ $suratJalan->nomor_surat_jalan }}</strong></td>
+                <td class="info-right-label">Tanggal</td>
+                <td class="info-colon">:</td>
+                <td class="info-right-value"><strong>{{ $suratJalan->tanggal->format('d F Y') }}</strong></td>
             </tr>
             <tr>
-                <td class="label">Nomor PO Customer</td>
-                <td class="separator">:</td>
-                <td><strong>{{ $po->nomor_po }}</strong></td>
-                <td class="label" style="text-align: right;">Tanggal PO</td>
-                <td class="separator">:</td>
-                <td>{{ $po->tanggal_po ? \Carbon\Carbon::parse($po->tanggal_po)->format('d F Y') : '-' }}</td>
+                <td class="info-left">Nomor PO Customer</td>
+                <td class="info-colon">:</td>
+                <td class="info-value"><strong>{{ $po->nomor_po }}</strong></td>
+                <td class="info-right-label">Tanggal PO</td>
+                <td class="info-colon">:</td>
+                <td class="info-right-value">{{ $po->tanggal_po ? \Carbon\Carbon::parse($po->tanggal_po)->format('d F Y') : '-' }}</td>
             </tr>
             <tr>
-                <td class="label">Status PO</td>
-                <td class="separator">:</td>
-                <td><strong>{{ $po->status_po->value ?? 'APPROVED' }}</strong></td>
-                <td class="label" style="text-align: right;">Dibuat Oleh</td>
-                <td class="separator">:</td>
-                <td>{{ $user->name ?? 'System' }}</td>
+                <td class="info-left">Status PO</td>
+                <td class="info-colon">:</td>
+                <td class="info-value"><strong>{{ $po->status_po->value ?? 'APPROVED' }}</strong></td>
+                <td class="info-right-label">Dibuat Oleh</td>
+                <td class="info-colon">:</td>
+                <td class="info-right-value">{{ $user->name ?? 'System' }}</td>
             </tr>
         </table>
     </div>
@@ -261,9 +386,9 @@
     <!-- Customer Info -->
     <div class="customer-section">
         <div class="customer-title">KEPADA:</div>
-        <table style="width: 100%;">
+        <table class="customer-table">
             <tr>
-                <td style="width: 50%; vertical-align: top;">
+                <td class="customer-left">
                     <strong>{{ $customer->nama }}</strong><br>
                     @if($customer->email)
                         Email: {{ $customer->email }}<br>
@@ -272,7 +397,7 @@
                         Telp: {{ $customer->telepon }}<br>
                     @endif
                 </td>
-                <td style="width: 50%; vertical-align: top;">
+                <td class="customer-right">
                     <strong>Alamat Pengiriman:</strong><br>
                     {{ $suratJalan->alamat_pengiriman }}
                 </td>
@@ -284,53 +409,39 @@
     <table class="items-table">
         <thead>
             <tr>
-                <th class="item-no">No</th>
-                <th class="item-desc">Deskripsi Barang</th>
-                <th class="item-qty">Jumlah</th>
-                <th class="item-unit">Satuan</th>
-                <th class="item-price">Harga Satuan</th>
-                <th class="item-total">Total</th>
+                <th class="col-no">No</th>
+                <th class="col-desc">Deskripsi Barang</th>
+                <th class="col-qty">Jumlah</th>
+                <th class="col-unit">Satuan</th>
+                <th class="col-price">Harga Satuan</th>
+                <th class="col-total">Total</th>
             </tr>
         </thead>
         <tbody>
             @php
                 $details = $po->details ?? collect();
-                $totalRows = max(1, $details->count());
             @endphp
 
             @if($details->count() > 0)
                 @foreach($details as $index => $detail)
                 <tr>
-                    <td class="item-no">{{ $index + 1 }}</td>
-                    <td class="item-desc">{{ $detail->deskripsi ?? $detail->nama_produk ?? '-' }}</td>
-                    <td class="item-qty">{{ number_format($detail->jumlah ?? 0, 0, ',', '.') }}</td>
-                    <td class="item-unit">{{ $detail->satuan ?? 'pcs' }}</td>
-                    <td class="item-price">Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}</td>
-                    <td class="item-total">Rp {{ number_format($detail->total ?? 0, 0, ',', '.') }}</td>
+                    <td class="col-no">{{ $index + 1 }}</td>
+                    <td class="col-desc">{{ $detail->deskripsi ?? $detail->nama_produk ?? '-' }}</td>
+                    <td class="col-qty">{{ number_format($detail->jumlah ?? 0, 0, ',', '.') }}</td>
+                    <td class="col-unit">{{ $detail->satuan ?? 'pcs' }}</td>
+                    <td class="col-price">Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}</td>
+                    <td class="col-total">Rp {{ number_format($detail->total ?? 0, 0, ',', '.') }}</td>
                 </tr>
                 @endforeach
-
-                @for($i = $details->count(); $i < $totalRows; $i++)
-                <tr>
-                    <td class="item-no">{{ $i + 1 }}</td>
-                    <td class="item-desc"></td>
-                    <td class="item-qty"></td>
-                    <td class="item-unit"></td>
-                    <td class="item-price"></td>
-                    <td class="item-total"></td>
-                </tr>
-                @endfor
             @else
-                @for($i = 1; $i <= $totalRows; $i++)
                 <tr>
-                    <td class="item-no">{{ $i }}</td>
-                    <td class="item-desc"></td>
-                    <td class="item-qty"></td>
-                    <td class="item-unit"></td>
-                    <td class="item-price"></td>
-                    <td class="item-total"></td>
+                    <td class="col-no">1</td>
+                    <td class="col-desc">-</td>
+                    <td class="col-qty">-</td>
+                    <td class="col-unit">-</td>
+                    <td class="col-price">-</td>
+                    <td class="col-total">-</td>
                 </tr>
-                @endfor
             @endif
         </tbody>
     </table>
@@ -340,15 +451,15 @@
     <div class="summary-section">
         <table class="summary-table">
             <tr>
-                <td class="summary-label">Subtotal:</td>
+                <td class="summary-label">Subtotal</td>
                 <td class="summary-value">Rp {{ number_format($po->total_sebelum_pajak ?? 0, 0, ',', '.') }}</td>
             </tr>
             <tr>
-                <td class="summary-label">PPN (11%):</td>
+                <td class="summary-label">PPN ({{ $po->tax_rate ?? 11 }}%)</td>
                 <td class="summary-value">Rp {{ number_format($po->total_pajak ?? 0, 0, ',', '.') }}</td>
             </tr>
-            <tr style="background-color: #e0e0e0;">
-                <td class="summary-label">TOTAL:</td>
+            <tr class="total-row">
+                <td class="summary-label">TOTAL</td>
                 <td class="summary-value">Rp {{ number_format($po->total ?? 0, 0, ',', '.') }}</td>
             </tr>
         </table>
@@ -358,10 +469,11 @@
     <!-- Notes Section -->
     <div class="notes-section">
         <div class="notes-title">Catatan:</div>
-        <div style="margin-top: 10px;">
+        <div class="notes-content">
             • Barang yang sudah diterima tidak dapat dikembalikan<br>
             • Penerima wajib melakukan pengecekan kondisi barang<br>
-            • Laporan kerusakan/kekurangan maksimal 1x24 jam<br>
+            • Laporan kerusakan/kekurangan maksimal 1x24 jam setelah barang diterima<br>
+            • Surat jalan ini merupakan bukti sah penyerahan barang
         </div>
     </div>
 
@@ -373,25 +485,9 @@
                     <div class="signature-title">Pengirim</div>
                     <div class="signature-name">{{ $user->name ?? 'Admin' }}</div>
                 </td>
-                <td class="signature-box">
-                    <div class="signature-title">Kurir</div>
-                    <div class="signature-name">(.......................)</div>
-                </td>
-                <td class="signature-box">
-                    <div class="signature-title">Penerima</div>
-                    <div class="signature-name">(.......................)</div>
-                </td>
             </tr>
         </table>
     </div>
 
-    <!-- Footer -->
-    <div class="footer">
-        <div><strong>{{ $company['name'] }}</strong></div>
-        <div>Dokumen digenerate pada {{ $generated_at }}</div>
-        <div style="font-size: 9px; margin-top: 5px;">
-            {{ $suratJalan->nomor_surat_jalan }} - Sistem Manajemen Surat Jalan
-        </div>
-    </div>
 </body>
 </html>
